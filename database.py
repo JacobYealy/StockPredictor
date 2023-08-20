@@ -1,16 +1,28 @@
-import sqlite3
+from sqlalchemy import create_engine, Column, Integer, Float, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-def create_table():
-    conn = sqlite3.connect('stock_data.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS stock_data
-                 (date TEXT, open REAL, high REAL, low REAL, close REAL, volume INTEGER)''')
-    conn.commit()
-    conn.close()
+Base = declarative_base()
+
+class StockData(Base):
+    __tablename__ = 'stock_data'
+
+    id = Column(Integer, primary_key=True)
+    date = Column(String)
+    open = Column(Float)
+    high = Column(Float)
+    low = Column(Float)
+    close = Column(Float)
+    volume = Column(Integer)
+
+engine = create_engine('sqlite:///stock_data.db')
+Base.metadata.create_all(engine)
+
+Session = sessionmaker(bind=engine)
+session = Session()
 
 def insert_data(data):
-    conn = sqlite3.connect('stock_data.db')
-    c = conn.cursor()
-    c.executemany('INSERT INTO stock_data VALUES (?,?,?,?,?,?)', data)
-    conn.commit()
-    conn.close()
+    for record in data:
+        stock_entry = StockData(date=record[0], open=record[1], high=record[2], low=record[3], close=record[4], volume=record[5])
+        session.add(stock_entry)
+    session.commit()

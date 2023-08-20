@@ -1,4 +1,5 @@
-pip install Flask
-pip install tensorflow
-pip install yfinance
-pip install sqlite
+Flask
+tensorflow
+yfinance
+SQLAlchemy
+mock
