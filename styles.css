@@ -1,0 +1,64 @@
+/* Reset some default styles */
+body, h1, h2, h3, ul, p {
+    margin: 0;
+    padding: 0;
+}
+
+/* Apply background color to the whole page */
+body {
+    background-color: #f4f4f4;
+    font-family: Arial, sans-serif;
+}
+
+/* Header styles */
+header {
+    background-color: #50b3a2;
+    color: white;
+    text-align: center;
+    padding: 1em;
+}
+
+/* Navigation styles */
+nav ul {
+    background-color: #333;
+    overflow: hidden;
+    color: white;
+}
+
+nav ul li {
+    float: left;
+    display: inline;
+    padding: 14px 16px;
+}
+
+/* Main content */
+main {
+    margin: 15px;
+    padding: 15px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Section styles */
+section {
+    margin: 20px 0;
+}
+
+/* Footer */
+footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 1em 0;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Plot container */
+#plot-container {
+    width: 100%;
+    height: 400px;
+    border: 1px solid #ccc;
+    padding: 15px;
+}
