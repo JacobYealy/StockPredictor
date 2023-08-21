@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sentiment Index Evaluation</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Stock Prediction Project</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+        </ul>
+    </nav>
+    <main>
+        <section id="intro">
+            <h2>Introduction</h2>
+            <p>This project utilizes Keras, YFinance, and AlphaVantage to generate stock prediction models based using LSTM networks.</p>
+        </section>
+        <section id="plot-section">
+            <h2>Prediction Plots</h2>
+            <div class="plot-wrapper">
+                <div class="plot-container" id="baseline-plot">
+                    <h3>Baseline</h3>
+                    <script type="text/javascript">
+    let plotData = JSON.parse("{{ plot_data | tojson | safe }}");
+
+    let trace = {
+      x: plotData.x,
+      y: plotData.y,
+      type: 'scatter'
+    };
+
+    let data = [trace];
+
+    Plotly.newPlot('plot-container', data);
+</script>
+                </div>
+                <div class="plot-container" id="sentiment-plot">
+                    <h3>Sentiment</h3>
+                    <!-- Place your sentiment plot here -->
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2023, Stock Prediction Project</p>
+    </footer>
+</body>
+</html>

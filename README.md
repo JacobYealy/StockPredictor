@@ -7,3 +7,5 @@ To install all requirements, use pip install -r requirements.txt
 * Tensorflow, the ML library Keras is built on
 * YFinance, the source of the stock data
 * SQLite, the database used to store the data.
+
+
