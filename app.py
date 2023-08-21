@@ -1,21 +1,16 @@
-from flask import Flask, render_template
-from database import Session, Base, engine
-from models.lstm_model import plot_data_json
+from flask import Flask, jsonify, render_template
+from lstm_model import generate_plot_data
 
-# Initialize Flask app
 app = Flask(__name__)
-
-# Initialize database tables
-Base.metadata.create_all(engine)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/get_plot_data', methods=['GET'])
+def get_plot_data():
+    plot_data_json = generate_plot_data()
+    return jsonify({'plotData': plot_data_json})
+
 if __name__ == '__main__':
     app.run(debug=True)
-
-def generate_plot_data():
-    # your LSTM and plotting code
-    # ...
-    return plot_data_json

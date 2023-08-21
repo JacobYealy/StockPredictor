@@ -3,52 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <title>Sentiment Index Evaluation</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Centered text */
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .container {
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Stock Prediction Project</h1>
-    </header>
-    <nav>
-        <ul>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">About</a></li>
-            <li><a href="#">Contact</a></li>
-        </ul>
-    </nav>
-    <main>
-        <section id="intro">
-            <h2>Introduction</h2>
-            <p>This project utilizes Keras, YFinance, and AlphaVantage to generate stock prediction models based using LSTM networks.</p>
-        </section>
-        <section id="plot-section">
-            <h2>Prediction Plots</h2>
-            <div class="plot-wrapper">
-                <div class="plot-container" id="baseline-plot">
-                    <h3>Baseline</h3>
-                    <script type="text/javascript">
-    let plotData = JSON.parse("{{ plot_data | tojson | safe }}");
+    <div class="container">
+        <header>
+            <h1>Sentiment Analysis for Stock Prediction Applications</h1>
+        </header>
+        <nav>
+            <ul>
+                <li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Contact</a></li>
+            </ul>
+        </nav>
+        <main>
+            <section id="intro">
+                <h2>Introduction</h2>
+                <p>This project utilizes Keras, YFinance, and AlphaVantage to generate stock prediction models using LSTM networks.</p>
+            </section>
+            <section id="plot-section">
+                <h2>Prediction Plot</h2>
+                <!-- Add a canvas element where the chart will be drawn -->
+                <canvas id="plotCanvas" width="400" height="200"></canvas>
+            </section>
+        </main>
+        <footer>
+            <p>Made by Jacob Yealy for CSC-499</p>
+        </footer>
+    </div>
 
-    let trace = {
-      x: plotData.x,
-      y: plotData.y,
-      type: 'scatter'
-    };
-
-    let data = [trace];
-
-    Plotly.newPlot('plot-container', data);
-</script>
-                </div>
-                <div class="plot-container" id="sentiment-plot">
-                    <h3>Sentiment</h3>
-                    <!-- Place your sentiment plot here -->
-                </div>
-            </div>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2023, Stock Prediction Project</p>
-    </footer>
+    <!-- Add a script to fetch data and update the chart -->
+    <script>
+      fetch('/get_plot_data').then(response => response.json()).then(data => {
+        const ctx = document.getElementById('plotCanvas').getContext('2d');
+        const myChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.x,
+            datasets: [{
+              label: 'Predicted Prices',
+              data: data.y,
+              // add more styling options here
+            }]
+          },
+          // add more chart options here
+        });
+      });
+    </script>
 </body>
 </html>
