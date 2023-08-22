@@ -6,48 +6,32 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Include Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        /* Centered text */
-        body, html {
-            height: 100%;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-        .container {
-            text-align: center;
-        }
-    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Sentiment Analysis for Stock Prediction Applications</h1>
-        </header>
-        <nav>
-            <ul>
-                <li><a href="#">Home</a></li>
-                <li><a href="#">About</a></li>
-                <li><a href="#">Contact</a></li>
-            </ul>
-        </nav>
-        <main>
-            <section id="intro">
-                <h2>Introduction</h2>
-                <p>This project utilizes Keras, YFinance, and AlphaVantage to generate stock prediction models using LSTM networks.</p>
-            </section>
-            <section id="plot-section">
-                <h2>Prediction Plot</h2>
-                <!-- Add a canvas element where the chart will be drawn -->
-                <canvas id="plotCanvas" width="400" height="200"></canvas>
-            </section>
-        </main>
-        <footer>
-            <p>Made by Jacob Yealy for CSC-499</p>
-        </footer>
-    </div>
+    <header>
+        <h1>Stock Prediction Project</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+        </ul>
+    </nav>
+    <main>
+        <section id="intro">
+            <h2>Introduction</h2>
+            <p>This project utilizes Keras, YFinance, and AlphaVantage to generate stock prediction models using LSTM networks.</p>
+        </section>
+        <section id="plot-section">
+            <h2>Baseline Plot</h2>
+            <!-- Add a canvas element where the chart will be drawn -->
+            <canvas id="plotCanvas" width="400" height="200"></canvas>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2023, Stock Prediction Project</p>
+    </footer>
 
     <!-- Add a script to fetch data and update the chart -->
     <script>

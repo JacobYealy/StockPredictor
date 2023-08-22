@@ -1,8 +1,8 @@
-import yfinance as yf
-import numpy as np
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
 from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LSTM
+import numpy as np
+import yfinance as yf
 import json
 
 # Parameters
@@ -57,8 +57,7 @@ def generate_plot_data():
         for i in range(look_back, len(scaled_test_data)):
             X_test.append(scaled_test_data[i - look_back:i, 0])
         X_test = np.array(X_test)
-
-        print("Shape of X_test:", X_test.shape)  # Debugging line
+        print("Shape of X_test:", X_test.shape)
 
         if X_test.shape[0] > 0:
             X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
@@ -68,16 +67,24 @@ def generate_plot_data():
         predicted_data = model.predict(X_test)
         predicted_data = scaler.inverse_transform(np.reshape(predicted_data, (predicted_data.shape[0], 1)))
 
-        # Create data for plotting
-        plot_data = {
-            'x': list(range(len(predicted_data))),
-            'y': predicted_data.flatten().tolist(),
-            'label': column
+        # Actual data for plotting
+        actual_data = stock_data[column].values[look_back:]
+
+        # Create data for plotting actual values
+        actual_plot_data = {
+            'x': list(range(len(actual_data))),
+            'y': actual_data.flatten().tolist(),
+            'label': f"Actual {column}"
         }
 
-        plot_data_list.append(plot_data)
+        # Create data for plotting predicted values
+        predicted_plot_data = {
+            'x': list(range(len(predicted_data))),
+            'y': predicted_data.flatten().tolist(),
+            'label': f"Predicted {column}"
+        }
 
-    return json.dumps(plot_data_list)
+        plot_data_list.append(actual_plot_data)
+        plot_data_list.append(predicted_plot_data)
 
-# Uncomment for individual testing
-# print(generate_plot_data())
+    return plot_data_list

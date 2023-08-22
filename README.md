@@ -17,3 +17,8 @@ To install all requirements, use pip install -r requirements.txt
 * Emotional Index data: 
   * Sentiment data from Alpha Vantage normalized as good, bad, or neutral.
 
+# Testing
+All tests are stored in the Test folder. To run a test, enter:
+* python -m unittest <filename>
+
+
