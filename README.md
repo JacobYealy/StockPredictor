@@ -19,6 +19,6 @@ To install all requirements, use pip install -r requirements.txt
 
 # Testing
 All tests are stored in the Test folder. To run a test, enter:
-* python -m unittest <filename>
+* python -m unittest + filename
 
 

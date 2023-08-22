@@ -6,7 +6,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Include Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include Hammer.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <!-- Include chartjs-plugin-zoom -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.1.1/chartjs-plugin-zoom.min.js"></script>
 </head>
+
 <body>
     <header>
         <h1>Stock Prediction Project</h1>
@@ -35,21 +40,61 @@
 
     <!-- Add a script to fetch data and update the chart -->
     <script>
-      fetch('/get_plot_data').then(response => response.json()).then(data => {
-        const ctx = document.getElementById('plotCanvas').getContext('2d');
-        const myChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: data.x,
-            datasets: [{
-              label: 'Predicted Prices',
-              data: data.y,
-              // add more styling options here
-            }]
-          },
-          // add more chart options here
+      fetch('/get_plot_data')
+    .then(response => response.json())
+    .then(dataStr => {
+        const plotDataList = JSON.parse(dataStr); // Parsing the received JSON string
+
+        const datasets = [];
+
+        // Loop through each column data (both actual and predicted)
+        plotDataList.forEach(plotData => {
+            datasets.push({
+                label: plotData.label,
+                data: plotData.y,
+                // Add more styling options here specific to this dataset
+            });
         });
-      });
+
+        const ctx = document.getElementById('plotCanvas').getContext('2d');
+
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: plotDataList[0].x,  // Assuming all x-values are the same
+                datasets: datasets
+            },
+            options: {
+                // Add zoom options here
+                plugins: {
+                    zoom: {
+                        pan: {
+                            enabled: true,
+                            mode: 'x'
+                        },
+                        zoom: {
+                            enabled: true,
+                            mode: 'x'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Stock Value'
+                        }
+                    }
+                }
+            }
+        });
+    });
     </script>
 </body>
 </html>

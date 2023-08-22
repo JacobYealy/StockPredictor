@@ -30,50 +30,48 @@ def generate_plot_data():
         # Normalize the data
         data_normalized = scaler.fit_transform(data)
 
-        # Prepare the data for LSTM
-        X, y = [], []
-        for i in range(look_back, len(data_normalized)):
-            X.append(data_normalized[i - look_back:i, 0])
-            y.append(data_normalized[i, 0])
-        X, y = np.array(X), np.array(y)
-        X = np.reshape(X, (X.shape[0], X.shape[1], 1))
+        # Splitting data into training and test sets
+        train_size = int(len(data_normalized) * 0.8)
+        test_size = len(data_normalized) - train_size
+        train, test = data_normalized[0:train_size, :], data_normalized[train_size:len(data_normalized), :]
+
+        # Prepare the training data for LSTM
+        X_train, y_train = [], []
+        for i in range(look_back, len(train)):
+            X_train.append(train[i - look_back:i, 0])
+            y_train.append(train[i, 0])
+        X_train, y_train = np.array(X_train), np.array(y_train)
+        X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
         # Build LSTM model
         model = Sequential()
-        model.add(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1)))
+        model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
         model.add(LSTM(units=50))
         model.add(Dense(units=1))
 
         # Compile and train the model
         model.compile(optimizer='adam', loss='mean_squared_error')
-        model.fit(X, y, epochs=epochs, batch_size=batch_size)
+        model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
+
+        # Prepare the test data for LSTM
+        X_test, y_test = [], []
+        for i in range(look_back, len(test)):
+            X_test.append(test[i - look_back:i, 0])
+            y_test.append(test[i, 0])
+        X_test, y_test = np.array(X_test), np.array(y_test)
+        X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
 
         # Make predictions using test data
-        test_data = yf.download("TSLA", start="2018-01-01", end="2022-01-01")[column].values.reshape(-1, 1)
-        scaled_test_data = scaler.transform(test_data)
-
-        X_test = []
-        print("Shape of scaled_test_data:", scaled_test_data.shape)
-        for i in range(look_back, len(scaled_test_data)):
-            X_test.append(scaled_test_data[i - look_back:i, 0])
-        X_test = np.array(X_test)
-        print("Shape of X_test:", X_test.shape)
-
-        if X_test.shape[0] > 0:
-            X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
-        else:
-            print("X_test is empty")
-
         predicted_data = model.predict(X_test)
         predicted_data = scaler.inverse_transform(np.reshape(predicted_data, (predicted_data.shape[0], 1)))
 
-        # Actual data for plotting
-        actual_data = stock_data[column].values[look_back:]
+        # Inverse transform test data to original scale
+        actual_test_data = scaler.inverse_transform(test[look_back:])
 
         # Create data for plotting actual values
         actual_plot_data = {
-            'x': list(range(len(actual_data))),
-            'y': actual_data.flatten().tolist(),
+            'x': list(range(len(actual_test_data))),
+            'y': actual_test_data.flatten().tolist(),
             'label': f"Actual {column}"
         }
 
