@@ -3,7 +3,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM
 import numpy as np
 import yfinance as yf
-import json
+from sentiment_engine import fetch_alpha_vantage_data
 
 # Parameters
 columns = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
