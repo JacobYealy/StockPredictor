@@ -84,5 +84,5 @@ def generate_plot_data():
 
         plot_data_list.append(actual_plot_data)
         plot_data_list.append(predicted_plot_data)
-
+    print("Generated plot data list: ", plot_data_list)  # For debugging
     return plot_data_list
