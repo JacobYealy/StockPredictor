@@ -2,34 +2,20 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM
 import numpy as np
-import yfinance as yf
-from sentiment_engine import fetch_alpha_vantage_data
+
+from get_data import fetch_yfinance_data, fetch_alpha_vantage_data
 
 # Parameters
-columns = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
-look_back = 5  # Number of past time steps to use for next time step.
-epochs = 50 # Number of times the model will iterate through entire training set
-batch_size = 32 #Number of samples per gradient update.
+look_back = 5  # Number of past-time steps to use for the next time step.
+epochs = 50    # Number of times the model will iterate through the entire training set.
+batch_size = 32  # Number of samples per gradient update.
 
 # Initialize MinMaxScaler (scale data between 0-1)
 scaler = MinMaxScaler(feature_range=(0, 1))
 
-
 def generate_plot_data():
-    # Download stock data
-    stock_data = yf.download("TSLA", start="2018-01-01", end="2022-01-01")
-
-    # Resample data to get monthly averages
-    stock_data_monthly = stock_data.resample('M').mean()
-
-    # Aggregate columns to form a single feature
-    stock_data_monthly['Aggregated'] = stock_data_monthly[columns].mean(axis=1)
-
-    # Extract and reshape data
-    data = stock_data_monthly['Aggregated'].values.reshape(-1, 1)
-
-    # Normalize the data
-    data_normalized = scaler.fit_transform(data)
+    # Get the normalized data and the scaler from yfinance
+    data_normalized, scaler = fetch_yfinance_data()
 
     # Splitting data into training and test sets (80/20)
     train_size = int(len(data_normalized) * 0.8)
@@ -84,6 +70,5 @@ def generate_plot_data():
     print("Generated plot data list: ", plot_data_list)
     return plot_data_list
 
-
-# Assuming you have the required libraries imported
+# Call the function to generate the plot data
 generate_plot_data()
