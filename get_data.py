@@ -16,12 +16,29 @@ API_KEY = "SKW1JDXETUGX5TQA"
 start = "20210101T0400" # T = time 0400 = 4:00
 end = "20230601T0400"
 
-# Convert Alpha Vantage timestamp to YYYY-MM-DD
 def convert_alpha_vantage_timestamp(alpha_vantage_timestamp):
+    """
+            Converts the timestamp format from YYYYMMDDT0000 to YYYYMMDD
+
+            Parameters:
+            - alpha_vantage_timestamp: The timestamp to be converted.
+
+            Returns:
+            - The converted date
+            """
     date_str = alpha_vantage_timestamp[:8]
     return datetime.strptime(date_str, '%Y%m%d').strftime('%Y-%m-%d')
 
 def fetch_alpha_vantage_data():
+    """
+                Makes an HTTP request to the AlphaVantage API for the sentiment data.
+
+                Parameters:
+                - None.
+
+                Returns:
+                - The Pandas formatted dataframe of sentiment data.
+                """
     url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=TSLA&time_from={start}&time_to={end}&apikey={API_KEY}"
     response = requests.get(url)
     data = response.json()

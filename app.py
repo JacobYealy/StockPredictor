@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, render_template
 import json
-from lstm_model import generate_plot_data
+from lstm_model import train_lstm_model, train_no_sentiment
 
 app = Flask(__name__)
 

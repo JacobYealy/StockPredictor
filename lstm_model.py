@@ -46,6 +46,13 @@ def train_lstm_model(X_train, y_train, look_back=5, epochs=50, batch_size=32):
 # You can also add a function to generate the plots and save them as PNG files
 # ...
 
+
+def train_no_sentiment(x_train, y_train, look_back=5, epochs=50,batch_size=32):
+    model = Sequential()
+    model.add(LSTM)
+    
+
+
 if __name__ == "__main__":
     # Test the function (replace with real stock and sentiment data)
     stock_data = np.random.rand(100)
