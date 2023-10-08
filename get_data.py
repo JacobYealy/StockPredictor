@@ -1,65 +1,64 @@
-import requests
-import pandas as pd
+import os
+import sqlite3
+
 import yfinance as yf
-from datetime import datetime
+import pandas as pd
+from datetime import datetime, timedelta
+from sklearn.preprocessing import MinMaxScaler
+import requests
 
-# Parameters
+scaler = MinMaxScaler(feature_range=(0, 1))
 columns = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
-
-# Alpha Vantage API Key and Time parameters
 API_KEY = "SKW1JDXETUGX5TQA"
-start = "20210101T0400"  # T = time 0400 = 4:00
-end = "20230601T0400"
+DB_NAME = "data.db"
 
-def convert_alpha_vantage_timestamp(alpha_vantage_timestamp):
-    """
-            Converts the timestamp format from YYYYMMDDT0000 to YYYYMMDD
+def connect_to_db():
+    return sqlite3.connect(DB_NAME)
 
-            Parameters:
-            - alpha_vantage_timestamp: The timestamp to be converted.
+def insert_stock_data(data_frame):
+    conn = connect_to_db()
+    data_frame.to_sql('stock_data', conn, if_exists='replace', index=False)
+    conn.close()
 
-            Returns:
-            - The converted date
-            """
-    date_str = alpha_vantage_timestamp[:8]
-    return datetime.strptime(date_str, '%Y%m%d').strftime('%Y-%m-%d')
+def insert_sentiment_data(data_frame):
+    conn = connect_to_db()
+    data_frame.to_sql('sentiment_data', conn, if_exists='replace', index=False)
+    conn.close()
 
-def fetch_alpha_vantage_data():
-    """
-                Makes an HTTP request to the AlphaVantage API for the sentiment data.
-
-                Parameters:
-                - None.
-
-                Returns:
-                - The Pandas formatted dataframe of sentiment data.
-                """
-    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=TSLA&time_from={start}&time_to={end}&apikey={API_KEY}"
-    response = requests.get(url)
-    data = response.json()
-    df = pd.DataFrame(data)
-    return df
-
-
-def fetch_yfinance_data():
-    # Download stock data
-    stock_data = yf.download("TSLA", start="2021-01-01", end="2023-06-01")
+def fetch_latest_yfinance_data(months=6):
+    end_date = datetime.today().strftime('%Y-%m-%d')
+    start_date = (datetime.today() - timedelta(days=months*30)).strftime('%Y-%m-%d')
+    stock_data = yf.download("TSLA", start=start_date, end=end_date)
     return stock_data
 
+def fetch_alpha_vantage_data():
+    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=TSLA&apikey={API_KEY}"
+    response = requests.get(url)
+    data = response.json()['feed']  # Adjust based on actual JSON structure
+    df = pd.DataFrame(data)
+    df['date'] = df['time_published'].apply(lambda x: x.split("T")[0])
+    return df
 
+def fetch_data(months=6):
+    # If cached, load from file
+    if os.path.exists(STOCK_DATA_FILE):
+        stock_data = pd.read_csv(STOCK_DATA_FILE, index_col='Date')
+    else:
+        stock_data = fetch_latest_yfinance_data(months)
 
-# Fetch and align data from both sources
-def fetch_all_data():
-    yfinance_data = fetch_yfinance_data().resample('M').mean()
+    # Fetch sentiment data
+    sentiment_data = fetch_alpha_vantage_data()
+    earliest_sentiment_date = sentiment_data['date'].min()
 
-    alpha_vantage_data = fetch_alpha_vantage_data()
-    alpha_vantage_data['date'] = alpha_vantage_data['time_published'].apply(convert_alpha_vantage_timestamp)
-    alpha_vantage_data.set_index('date', inplace=True)
-    alpha_vantage_data = alpha_vantage_data.resample('M').mean()
+    # If earliest sentiment data is not in stock data, refetch stock data
+    if earliest_sentiment_date not in stock_data.index:
+        stock_data = fetch_latest_yfinance_data(months=(datetime.today() - datetime.strptime(earliest_sentiment_date, '%Y-%m-%d')).days//30)
 
-    # Align data
-    common_dates = yfinance_data.index.intersection(alpha_vantage_data.index)
-    yfinance_data = yfinance_data.loc[common_dates]
-    alpha_vantage_data = alpha_vantage_data.loc[common_dates]
+    # Forward-fill sentiment data
+    sentiment_data.set_index('date', inplace=True)
+    sentiment_data = sentiment_data.reindex(stock_data.index, method='ffill')
 
-    return yfinance_data, alpha_vantage_data
+    return stock_data, sentiment_data
+
+if __name__ == '__main__':
+    fetch_data()
