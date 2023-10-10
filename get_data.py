@@ -1,65 +1,85 @@
-import requests
-import pandas as pd
+import os
+import sqlite3
 import yfinance as yf
-from datetime import datetime
+import pandas as pd
+from datetime import datetime, timedelta
+from sklearn.preprocessing import MinMaxScaler
+import requests
 
-# Parameters
+scaler = MinMaxScaler(feature_range=(0, 1))
 columns = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
-
-# Alpha Vantage API Key and Time parameters
 API_KEY = "SKW1JDXETUGX5TQA"
-start = "20210101T0400"  # T = time 0400 = 4:00
-end = "20230601T0400"
+DB_NAME = "data.sqlite"
 
-def convert_alpha_vantage_timestamp(alpha_vantage_timestamp):
-    """
-            Converts the timestamp format from YYYYMMDDT0000 to YYYYMMDD
 
-            Parameters:
-            - alpha_vantage_timestamp: The timestamp to be converted.
+def connect_to_db():
+    return sqlite3.connect(DB_NAME)
 
-            Returns:
-            - The converted date
-            """
-    date_str = alpha_vantage_timestamp[:8]
-    return datetime.strptime(date_str, '%Y%m%d').strftime('%Y-%m-%d')
+def insert_stock_data(data_frame):
+    conn = connect_to_db()
+    data_frame.to_sql('stock_data', conn, if_exists='replace', index=False)
+    conn.close()
 
-def fetch_alpha_vantage_data():
-    """
-                Makes an HTTP request to the AlphaVantage API for the sentiment data.
+def insert_sentiment_data(data_frame):
+    # Convert problematic columns to string format
+    for col in ['authors', 'topics', 'ticker_sentiment']:
+        if col in data_frame:
+            data_frame[col] = data_frame[col].astype(str)
 
-                Parameters:
-                - None.
+    try:
+        conn = connect_to_db()
+        data_frame.to_sql('sentiment_data', conn, if_exists='replace', index=False)
+        conn.close()
+    except Exception as e:
+        print(f"Error: {e}")
+        print(data_frame.head())
+        print("TYPES:", data_frame.dtypes)
 
-                Returns:
-                - The Pandas formatted dataframe of sentiment data.
-                """
-    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=TSLA&time_from={start}&time_to={end}&apikey={API_KEY}"
-    response = requests.get(url)
-    data = response.json()
-    df = pd.DataFrame(data)
+def fetch_stock_data_from_db():
+    conn = connect_to_db()
+    df = pd.read_sql('SELECT * FROM stock_data', conn)
+    conn.close()
     return df
 
+def fetch_sentiment_data_from_db():
+    conn = connect_to_db()
+    df = pd.read_sql('SELECT * FROM sentiment_data', conn)
+    conn.close()
+    return df
 
-def fetch_yfinance_data():
-    # Download stock data
-    stock_data = yf.download("TSLA", start="2021-01-01", end="2023-06-01")
+def fetch_latest_yfinance_data(end_date, months=6):
+    start_date = (end_date - timedelta(days=months * 30)).strftime('%Y-%m-%d')
+    stock_data = yf.download("TSLA", start=start_date, end=end_date.strftime('%Y-%m-%d'))
+    insert_stock_data(stock_data)
     return stock_data
 
+def fetch_alpha_vantage_data():
+    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=TSLA&apikey={API_KEY}"
+    response = requests.get(url)
+    data = response.json()['feed']
+    df = pd.DataFrame(data)
+    df['date'] = df['time_published'].apply(lambda x: x.split("T")[0])
+    insert_sentiment_data(df)
+    return df
+
+def fetch_data():
+    # Fetch sentiment data
+    sentiment_data = fetch_sentiment_data_from_db()
+    if sentiment_data.empty:
+        sentiment_data = fetch_alpha_vantage_data()
+
+    earliest_sentiment_date = datetime.strptime(sentiment_data['date'].min(), '%Y%m%d')
+    latest_sentiment_date = datetime.strptime(sentiment_data['date'].max(), '%Y%m%d')
 
 
-# Fetch and align data from both sources
-def fetch_all_data():
-    yfinance_data = fetch_yfinance_data().resample('M').mean()
+    # Fetch stock data from database
+    stock_data = fetch_stock_data_from_db()
 
-    alpha_vantage_data = fetch_alpha_vantage_data()
-    alpha_vantage_data['date'] = alpha_vantage_data['time_published'].apply(convert_alpha_vantage_timestamp)
-    alpha_vantage_data.set_index('date', inplace=True)
-    alpha_vantage_data = alpha_vantage_data.resample('M').mean()
+    # If not available in database or not aligned, fetch latest
+    if stock_data.empty or earliest_sentiment_date not in stock_data.index:
+        stock_data = fetch_latest_yfinance_data(latest_sentiment_date)
 
-    # Align data
-    common_dates = yfinance_data.index.intersection(alpha_vantage_data.index)
-    yfinance_data = yfinance_data.loc[common_dates]
-    alpha_vantage_data = alpha_vantage_data.loc[common_dates]
+    return stock_data, sentiment_data
 
-    return yfinance_data, alpha_vantage_data
+if __name__ == '__main__':
+    fetch_data()
