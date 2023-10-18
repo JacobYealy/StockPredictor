@@ -8,7 +8,7 @@ import requests
 
 scaler = MinMaxScaler(feature_range=(0, 1))
 columns = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
-API_KEY = "SKW1JDXETUGX5TQA"
+API_KEY = "0QP1NKR7T9294YVM"
 DB_NAME = "data.sqlite"
 
 
@@ -47,18 +47,19 @@ def fetch_sentiment_data_from_db():
     conn.close()
     return df
 
-def fetch_latest_yfinance_data(end_date, months=6):
+def fetch_latest_yfinance_data(end_date, months=7):
     start_date = (end_date - timedelta(days=months * 30)).strftime('%Y-%m-%d')
     stock_data = yf.download("TSLA", start=start_date, end=end_date.strftime('%Y-%m-%d'))
     insert_stock_data(stock_data)
     return stock_data
 
 def fetch_alpha_vantage_data():
-    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=TSLA&apikey={API_KEY}"
+    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&time_from=20230610T0130&sort=EARLIEST&tickers=TSLA&apikey={API_KEY}"
     response = requests.get(url)
     data = response.json()['feed']
     df = pd.DataFrame(data)
     df['date'] = df['time_published'].apply(lambda x: x.split("T")[0])
+    print(df.head())
     insert_sentiment_data(df)
     return df
 

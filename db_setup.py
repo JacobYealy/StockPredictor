@@ -11,33 +11,48 @@ def create_tables():
     conn = connect_to_db()
     cur = conn.cursor()
 
-    # Create stock_data table
-    cur.execute('''
-    CREATE TABLE IF NOT EXISTS stock_data (
-        date TEXT PRIMARY KEY,
-        open REAL,
-        high REAL,
-        low REAL,
-        close REAL,
-        adj_close REAL,
-        volume INTEGER
-    )
-    ''')
+    try:
+        # Create stock_data table
+        cur.execute('''
+        CREATE TABLE IF NOT EXISTS stock_data (
+            date TEXT PRIMARY KEY,
+            open REAL,
+            high REAL,
+            low REAL,
+            close REAL,
+            adj_close REAL,
+            volume INTEGER
+        )
+        ''')
 
-    # Create sentiment_data table
-    cur.execute('''
-    CREATE TABLE IF NOT EXISTS sentiment_data (
-        date TEXT PRIMARY KEY,
-        sentiment_score REAL
-    )
-    ''')
+        # Create sentiment_data table
+        cur.execute('''
+        CREATE TABLE IF NOT EXISTS sentiment_data (
+            date TEXT PRIMARY KEY,
+            sentiment_score REAL
+        )
+        ''')
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+
+    except sqlite3.Error as e:
+        print(f"An error occurred while creating tables: {e}")
+
+    finally:
+        conn.close()
 
 
 def setup_db():
     create_tables()
+
+def list_tables():
+    conn = connect_to_db()
+    cur = conn.cursor()
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = cur.fetchall()
+    for table in tables:
+        print(table[0])
+    conn.close()
 
 
 if __name__ == "__main__":
