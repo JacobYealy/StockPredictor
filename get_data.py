@@ -1,10 +1,11 @@
-import os
 import sqlite3
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 from sklearn.preprocessing import MinMaxScaler
 import requests
+from math import ceil
+import time
 
 API_KEY = "0QP1NKR7T9294YVM"
 DB_NAME = "data.sqlite"
@@ -18,8 +19,9 @@ def connect_to_db():
 
 def insert_stock_data(data_frame):
     conn = connect_to_db()
-    data_frame.to_sql('stock_data', conn, if_exists='append', index=False)  # changed to 'append'
+    data_frame.to_sql('stock_data', conn, if_exists='replace', index=False)
     conn.close()
+
 
 def insert_sentiment_data(data_frame):
     # Convert problematic columns to string format
@@ -29,7 +31,18 @@ def insert_sentiment_data(data_frame):
 
     try:
         conn = connect_to_db()
-        data_frame.to_sql('sentiment_data', conn, if_exists='replace', index=False)
+
+        # Load existing sentiment data to check for duplicates
+        existing_data = pd.read_sql('SELECT * FROM sentiment_data', conn)
+
+        # Merge the new data with the existing data and drop duplicates
+        combined_data = pd.concat([existing_data, data_frame]).drop_duplicates().reset_index(drop=True)
+
+        # Clear the old table and insert the combined data
+        cur = conn.cursor()
+        cur.execute("DELETE FROM sentiment_data")
+        combined_data.to_sql('sentiment_data', conn, if_exists='append', index=False)
+
         conn.close()
     except Exception as e:
         print(f"Error: {e}")
@@ -51,8 +64,10 @@ def fetch_sentiment_data_from_db():
 def fetch_latest_yfinance_data(end_date, months=7):
     start_date = (end_date - timedelta(days=months * 30)).strftime('%Y-%m-%d')
     stock_data = yf.download("TSLA", start=start_date, end=end_date.strftime('%Y-%m-%d'))
+    stock_data.reset_index(inplace=True)  # This line will convert the date index into a column
     insert_stock_data(stock_data)
     return stock_data
+
 
 def fetch_alpha_vantage_data():
     url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&time_from=20230610T0130&sort=EARLIEST&tickers=TSLA&apikey={API_KEY}"
@@ -65,29 +80,50 @@ def fetch_alpha_vantage_data():
     return df
 
 
-def fetch_sentiment_data_for_period(start_date: datetime, end_date: datetime) -> pd.DataFrame:
+def fetch_sentiment_data_for_period(initial_start_date: datetime, final_end_date: datetime) -> pd.DataFrame:
     """
-    Fetch sentiment data for TSLA for the given period using the Alpha Vantage API.
+    Fetch sentiment data for TSLA in roughly monthly intervals between initial_start_date and final_end_date.
     """
-    # Adjust the format to '%Y%m%dT%H%M'
-    start_str = start_date.strftime('%Y%m%dT%H%M')
-    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&time_from={start_str}&sort=EARLIEST&tickers=TSLA&apikey={API_KEY}"
-    response = requests.get(url)
+    all_data = []
 
-    # Check the content of the response
-    json_content = response.json()
+    total_days = (final_end_date - initial_start_date).days
+    intervals = ceil(total_days / 30)  # Roughly splitting the period into monthly intervals
 
-    # Ensure the key 'feed' exists in the response
-    if 'feed' not in json_content:
-        print("Error: 'feed' key not found in the response. Response:", json_content)
-        return pd.DataFrame()  # Return an empty DataFrame to indicate an error
+    for i in range(intervals):
+        current_start_date = initial_start_date + timedelta(days=i * 30)
+        current_end_date = current_start_date + timedelta(days=30)
 
-    data = json_content['feed']
-    df = pd.DataFrame(data)
-    df['date'] = df['time_published'].apply(lambda x: x.split("T")[0])
+        if current_end_date > final_end_date:
+            current_end_date = final_end_date
+
+        # Adjust the format to '%Y%m%dT%H%M'
+        start_str = current_start_date.strftime('%Y%m%dT%H%M')
+        end_str = current_end_date.strftime('%Y%m%dT%H%M')
+
+        url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&time_from={start_str}&time_to={end_str}&sort=EARLIEST&tickers=TSLA&apikey={API_KEY}"
+
+        response = requests.get(url)
+
+        # Check the content of the response
+        json_content = response.json()
+
+        # Ensure the key 'feed' exists in the response
+        if 'feed' not in json_content:
+            print("Error: 'feed' key not found in the response. Response:", json_content)
+            continue
+
+        data = json_content['feed']
+        all_data.extend(data)
+
+        # Log the number of articles fetched
+        print(f"Fetched {len(data)} articles for period {start_str} to {end_str}.")
+
+        time.sleep(12)  # 5 requests per minute translates to 12 seconds between requests
+
+    df = pd.DataFrame(all_data)
+    df['date'] = df['time_published'].apply(lambda x: x[:8])
 
     return df
-
 
 
 def fetch_data_for_last_six_months():
@@ -111,14 +147,24 @@ def fetch_data():
         latest_data = fetch_sentiment_data_for_period(datetime.now() - timedelta(days=7), datetime.now())
         insert_sentiment_data(latest_data)
 
-    latest_sentiment_date = datetime.strptime(sentiment_data['date'].max(), '%Y%m%d')
+    # Drop rows where 'date' is NaN and convert the remaining to string type
+    sentiment_data = sentiment_data.dropna(subset=['date'])
+    sentiment_data['date'] = sentiment_data['date'].astype(str)
 
+    # Check for unexpected values in the 'date' column
+    try:
+        latest_sentiment_date = datetime.strptime(sentiment_data['date'].max(), '%Y%m%d')
+    except ValueError:
+        print("Unexpected values found in the 'date' column:", sentiment_data['date'].unique())
+        raise
 
     # Fetch stock data from database
     stock_data = fetch_stock_data_from_db()
 
-    # If the latest stock date in the database is older than the latest sentiment date, fetch new stock data
-    if stock_data.empty or stock_data.index[-1] < latest_sentiment_date:
+    # If the stock data frame is empty or its latest date is older than the latest sentiment date, fetch new stock data
+    latest_stock_date = datetime.strptime(stock_data['Date'].iloc[-1], '%Y-%m-%d %H:%M:%S') if not stock_data.empty else None
+
+    if not latest_stock_date or latest_stock_date < latest_sentiment_date:
         latest_stock_data = fetch_latest_yfinance_data(datetime.now(), months=6)
         insert_stock_data(latest_stock_data)
         stock_data = fetch_stock_data_from_db()

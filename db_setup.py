@@ -19,8 +19,8 @@ def create_tables():
             Open FLOAT,
             High FLOAT,
             Low FLOAT,
-            Close FLOAT,
-            Adj Close FLOAT,
+            "Close" FLOAT,
+            "Adj Close" FLOAT,
             Volume INT
         )
         ''')
