@@ -6,10 +6,11 @@ from datetime import datetime, timedelta
 from sklearn.preprocessing import MinMaxScaler
 import requests
 
-scaler = MinMaxScaler(feature_range=(0, 1))
-columns = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
 API_KEY = "0QP1NKR7T9294YVM"
 DB_NAME = "data.sqlite"
+
+scaler = MinMaxScaler(feature_range=(0, 1))
+columns = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
 
 
 def connect_to_db():
@@ -17,7 +18,7 @@ def connect_to_db():
 
 def insert_stock_data(data_frame):
     conn = connect_to_db()
-    data_frame.to_sql('stock_data', conn, if_exists='replace', index=False)
+    data_frame.to_sql('stock_data', conn, if_exists='append', index=False)  # changed to 'append'
     conn.close()
 
 def insert_sentiment_data(data_frame):
@@ -63,24 +64,67 @@ def fetch_alpha_vantage_data():
     insert_sentiment_data(df)
     return df
 
+
+def fetch_sentiment_data_for_period(start_date: datetime, end_date: datetime) -> pd.DataFrame:
+    """
+    Fetch sentiment data for TSLA for the given period using the Alpha Vantage API.
+    """
+    # Adjust the format to '%Y%m%dT%H%M'
+    start_str = start_date.strftime('%Y%m%dT%H%M')
+    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&time_from={start_str}&sort=EARLIEST&tickers=TSLA&apikey={API_KEY}"
+    response = requests.get(url)
+
+    # Check the content of the response
+    json_content = response.json()
+
+    # Ensure the key 'feed' exists in the response
+    if 'feed' not in json_content:
+        print("Error: 'feed' key not found in the response. Response:", json_content)
+        return pd.DataFrame()  # Return an empty DataFrame to indicate an error
+
+    data = json_content['feed']
+    df = pd.DataFrame(data)
+    df['date'] = df['time_published'].apply(lambda x: x.split("T")[0])
+
+    return df
+
+
+
+def fetch_data_for_last_six_months():
+    """Fetch sentiment data for TSLA for the last six months in bi-monthly intervals."""
+    end_date = datetime.now()
+    for _ in range(3):  # fetch bi-monthly data for the past six months
+        start_date = end_date - timedelta(days=60)
+        df = fetch_sentiment_data_for_period(start_date, end_date)
+        insert_sentiment_data(df)
+        end_date = start_date
+
+
 def fetch_data():
     # Fetch sentiment data
     sentiment_data = fetch_sentiment_data_from_db()
-    if sentiment_data.empty:
-        sentiment_data = fetch_alpha_vantage_data()
 
-    earliest_sentiment_date = datetime.strptime(sentiment_data['date'].min(), '%Y%m%d')
+    if sentiment_data.empty:
+        fetch_data_for_last_six_months()
+        sentiment_data = fetch_sentiment_data_from_db()
+    else:
+        latest_data = fetch_sentiment_data_for_period(datetime.now() - timedelta(days=7), datetime.now())
+        insert_sentiment_data(latest_data)
+
     latest_sentiment_date = datetime.strptime(sentiment_data['date'].max(), '%Y%m%d')
 
 
     # Fetch stock data from database
     stock_data = fetch_stock_data_from_db()
 
-    # If not available in database or not aligned, fetch latest
-    if stock_data.empty or earliest_sentiment_date not in stock_data.index:
-        stock_data = fetch_latest_yfinance_data(latest_sentiment_date)
+    # If the latest stock date in the database is older than the latest sentiment date, fetch new stock data
+    if stock_data.empty or stock_data.index[-1] < latest_sentiment_date:
+        latest_stock_data = fetch_latest_yfinance_data(datetime.now(), months=6)
+        insert_stock_data(latest_stock_data)
+        stock_data = fetch_stock_data_from_db()
 
     return stock_data, sentiment_data
+
 
 if __name__ == '__main__':
     fetch_data()
