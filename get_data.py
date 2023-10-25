@@ -7,7 +7,7 @@ import requests
 from math import ceil
 import time
 
-API_KEY = "0QP1NKR7T9294YVM"
+API_KEY = "XV9E16WIKPI28W2T" # 0QP1NKR7T9294YVM
 DB_NAME = "data.sqlite"
 
 scaler = MinMaxScaler(feature_range=(0, 1))
@@ -38,14 +38,10 @@ def insert_sentiment_data(data_frame):
         # Merge the new data with the existing data and drop duplicates
         combined_data = pd.concat([existing_data, data_frame]).drop_duplicates().reset_index(drop=True)
 
-        # In insert_sentiment_data
-        print("Combined Sentiment Data:", combined_data.head())
-
         # Clear the old table and insert the combined data
         cur = conn.cursor()
         cur.execute("DELETE FROM sentiment_data")
         combined_data.to_sql('sentiment_data', conn, if_exists='append', index=False)
-
 
         conn.close()
     except Exception as e:
@@ -81,11 +77,6 @@ def fetch_alpha_vantage_data():
     df['date'] = df['time_published'].apply(lambda x: x.split("T")[0])
     print(df.head())
     insert_sentiment_data(df)
-
-
-    # In fetch_alpha_vantage_data
-    print("Alpha Vantage Response:", response.json())
-    print("Constructed DF from Alpha Vantage:", df.head())
     return df
 
 
@@ -132,10 +123,6 @@ def fetch_sentiment_data_for_period(initial_start_date: datetime, final_end_date
     df = pd.DataFrame(all_data)
     df['date'] = df['time_published'].apply(lambda x: x[:8])
 
-    # In fetch_sentiment_data_for_period
-    print("Alpha Vantage Response for period:", response.json())
-    print("Constructed DF from Alpha Vantage for period:", df.head())
-
     return df
 
 
@@ -156,20 +143,20 @@ def fetch_data():
     if sentiment_data.empty:
         fetch_data_for_last_six_months()
         sentiment_data = fetch_sentiment_data_from_db()
-
-    if not sentiment_data.empty:
-        # Drop rows where 'date' is NaN and convert the remaining to string type
-        sentiment_data = sentiment_data.dropna(subset=['date'])
-        sentiment_data['date'] = sentiment_data['date'].astype(str)
-
-        # Check for unexpected values in the 'date' column
-        try:
-            latest_sentiment_date = datetime.strptime(sentiment_data['date'].max(), '%Y%m%d')
-        except ValueError:
-            print("Unexpected values found in the 'date' column:", sentiment_data['date'].unique())
-            raise
     else:
-        latest_sentiment_date = None
+        latest_data = fetch_sentiment_data_for_period(datetime.now() - timedelta(days=7), datetime.now())
+        insert_sentiment_data(latest_data)
+
+    # Drop rows where 'date' is NaN and convert the remaining to string type
+    sentiment_data = sentiment_data.dropna(subset=['date'])
+    sentiment_data['date'] = sentiment_data['date'].astype(str)
+
+    # Check for unexpected values in the 'date' column
+    try:
+        latest_sentiment_date = datetime.strptime(sentiment_data['date'].max(), '%Y-%m-%d')
+    except ValueError:
+        print("Unexpected values found in the 'date' column:", sentiment_data['date'].unique())
+        raise
 
     # Fetch stock data from database
     stock_data = fetch_stock_data_from_db()
@@ -177,7 +164,7 @@ def fetch_data():
     # If the stock data frame is empty or its latest date is older than the latest sentiment date, fetch new stock data
     latest_stock_date = datetime.strptime(stock_data['Date'].iloc[-1], '%Y-%m-%d %H:%M:%S') if not stock_data.empty else None
 
-    if not latest_stock_date or (latest_sentiment_date and latest_stock_date < latest_sentiment_date):
+    if not latest_stock_date or latest_stock_date < latest_sentiment_date:
         latest_stock_data = fetch_latest_yfinance_data(datetime.now(), months=6)
         insert_stock_data(latest_stock_data)
         stock_data = fetch_stock_data_from_db()
