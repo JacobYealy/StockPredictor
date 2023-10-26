@@ -1,0 +1,136 @@
+Index: lstm_model.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from sklearn.preprocessing import MinMaxScaler\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense, LSTM\nimport numpy as np\nimport yfinance as yf\nfrom sentiment_engine import fetch_alpha_vantage_data\n\n# Parameters\ncolumns = [\"Open\", \"High\", \"Low\", \"Close\", \"Adj Close\", \"Volume\"]\nlook_back = 50\nepochs = 50\nbatch_size = 32\n\n# Initialize MinMaxScaler\nscaler = MinMaxScaler(feature_range=(0, 1))\n\n\ndef generate_plot_data():\n    # Download stock data\n    stock_data = yf.download(\"TSLA\", start=\"2018-01-01\", end=\"2022-01-01\")\n    plot_data_list = []\n\n    # Loop over each column to make predictions\n    for column in columns:\n        print(f\"Predicting {column}\")\n\n        # Extract and reshape data\n        data = stock_data[column].values.reshape(-1, 1)\n\n        # Normalize the data\n        data_normalized = scaler.fit_transform(data)\n\n        # Splitting data into training and test sets\n        train_size = int(len(data_normalized) * 0.8)\n        test_size = len(data_normalized) - train_size\n        train, test = data_normalized[0:train_size, :], data_normalized[train_size:len(data_normalized), :]\n\n        # Prepare the training data for LSTM\n        X_train, y_train = [], []\n        for i in range(look_back, len(train)):\n            X_train.append(train[i - look_back:i, 0])\n            y_train.append(train[i, 0])\n        X_train, y_train = np.array(X_train), np.array(y_train)\n        X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))\n\n        # Build LSTM model\n        model = Sequential()\n        model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))\n        model.add(LSTM(units=50))\n        model.add(Dense(units=1))\n\n        # Compile and train the model\n        model.compile(optimizer='adam', loss='mean_squared_error')\n        model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)\n\n        # Prepare the test data for LSTM\n        X_test, y_test = [], []\n        for i in range(look_back, len(test)):\n            X_test.append(test[i - look_back:i, 0])\n            y_test.append(test[i, 0])\n        X_test, y_test = np.array(X_test), np.array(y_test)\n        X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))\n\n        # Make predictions using test data\n        predicted_data = model.predict(X_test)\n        predicted_data = scaler.inverse_transform(np.reshape(predicted_data, (predicted_data.shape[0], 1)))\n\n        # Inverse transform test data to original scale\n        actual_test_data = scaler.inverse_transform(test[look_back:])\n\n        # Create data for plotting actual values\n        actual_plot_data = {\n            'x': list(range(len(actual_test_data))),\n            'y': actual_test_data.flatten().tolist(),\n            'label': f\"Actual {column}\"\n        }\n\n        # Create data for plotting predicted values\n        predicted_plot_data = {\n            'x': list(range(len(predicted_data))),\n            'y': predicted_data.flatten().tolist(),\n            'label': f\"Predicted {column}\"\n        }\n\n        plot_data_list.append(actual_plot_data)\n        plot_data_list.append(predicted_plot_data)\n    print(\"Generated plot data list: \", plot_data_list)  # For debugging\n    return plot_data_list\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lstm_model.py b/lstm_model.py
+--- a/lstm_model.py	
++++ b/lstm_model.py	
+@@ -3,10 +3,9 @@
+ from tensorflow.keras.layers import Dense, LSTM
+ import numpy as np
+ import yfinance as yf
+-from sentiment_engine import fetch_alpha_vantage_data
++import pandas as pd
+ 
+ # Parameters
+-columns = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
+ look_back = 50
+ epochs = 50
+ batch_size = 32
+@@ -20,69 +19,57 @@
+     stock_data = yf.download("TSLA", start="2018-01-01", end="2022-01-01")
+     plot_data_list = []
+ 
+-    # Loop over each column to make predictions
+-    for column in columns:
+-        print(f"Predicting {column}")
+-
+-        # Extract and reshape data
+-        data = stock_data[column].values.reshape(-1, 1)
++    # Select columns
++    selected_columns = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
++    data = stock_data[selected_columns].values
+ 
+-        # Normalize the data
+-        data_normalized = scaler.fit_transform(data)
++    # Normalize the data
++    data_normalized = scaler.fit_transform(data)
+ 
+-        # Splitting data into training and test sets
+-        train_size = int(len(data_normalized) * 0.8)
+-        test_size = len(data_normalized) - train_size
+-        train, test = data_normalized[0:train_size, :], data_normalized[train_size:len(data_normalized), :]
++    # Splitting data into training and test sets
++    train_size = int(len(data_normalized) * 0.8)
++    test_size = len(data_normalized) - train_size
++    train, test = data_normalized[0:train_size, :], data_normalized[train_size:len(data_normalized), :]
+ 
+-        # Prepare the training data for LSTM
+-        X_train, y_train = [], []
+-        for i in range(look_back, len(train)):
+-            X_train.append(train[i - look_back:i, 0])
+-            y_train.append(train[i, 0])
+-        X_train, y_train = np.array(X_train), np.array(y_train)
+-        X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
++    # Prepare the training and test data for LSTM
++    def create_dataset(dataset, look_back=1):
++        X, Y = [], []
++        for i in range(len(dataset) - look_back):
++            a = dataset[i:(i + look_back), :]
++            X.append(a)
++            Y.append(dataset[i + look_back, 3])  # Column 3 corresponds to 'Close' price
++        return np.array(X), np.array(Y)
++
++    X_train, y_train = create_dataset(train, look_back)
++    X_test, y_test = create_dataset(test, look_back)
+ 
+-        # Build LSTM model
+-        model = Sequential()
+-        model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+-        model.add(LSTM(units=50))
+-        model.add(Dense(units=1))
++    # Build LSTM model
++    model = Sequential()
++    model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])))
++    model.add(LSTM(units=50))
++    model.add(Dense(units=1))
+ 
+-        # Compile and train the model
+-        model.compile(optimizer='adam', loss='mean_squared_error')
+-        model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
++    # Compile and train the model
++    model.compile(optimizer='adam', loss='mean_squared_error')
++    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
+ 
+-        # Prepare the test data for LSTM
+-        X_test, y_test = [], []
+-        for i in range(look_back, len(test)):
+-            X_test.append(test[i - look_back:i, 0])
+-            y_test.append(test[i, 0])
+-        X_test, y_test = np.array(X_test), np.array(y_test)
+-        X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+-
+-        # Make predictions using test data
+-        predicted_data = model.predict(X_test)
+-        predicted_data = scaler.inverse_transform(np.reshape(predicted_data, (predicted_data.shape[0], 1)))
++    # Make predictions using test data
++    predicted_data = model.predict(X_test)
++    predicted_data = scaler.inverse_transform(np.c_[predicted_data, np.zeros(predicted_data.shape)])
+ 
+-        # Inverse transform test data to original scale
+-        actual_test_data = scaler.inverse_transform(test[look_back:])
++    # Inverse transform the 'Close' prices from test data to original scale
++    actual_test_data = scaler.inverse_transform(np.c_[X_test[:, -1, :], np.zeros(X_test.shape[0])])[:, 3]
+ 
+-        # Create data for plotting actual values
+-        actual_plot_data = {
+-            'x': list(range(len(actual_test_data))),
+-            'y': actual_test_data.flatten().tolist(),
+-            'label': f"Actual {column}"
+-        }
+-
+-        # Create data for plotting predicted values
+-        predicted_plot_data = {
+-            'x': list(range(len(predicted_data))),
+-            'y': predicted_data.flatten().tolist(),
+-            'label': f"Predicted {column}"
+-        }
++    # Create data for plotting actual and predicted 'Close' prices
++    actual_plot_data = {'x': list(range(len(actual_test_data))), 'y': actual_test_data.tolist(),
++                        'label': "Actual Close"}
++    predicted_plot_data = {'x': list(range(len(predicted_data))), 'y': predicted_data[:, 0].tolist(),
++                           'label': "Predicted Close"}
+ 
+-        plot_data_list.append(actual_plot_data)
+-        plot_data_list.append(predicted_plot_data)
+-    print("Generated plot data list: ", plot_data_list)  # For debugging
++    plot_data_list.append(actual_plot_data)
++    plot_data_list.append(predicted_plot_data)
++
+     return plot_data_list
++
++
++plot_data = generate_plot_data()
