@@ -28,22 +28,9 @@ def create_tables():
         # Create sentiment_data table
         cur.execute('''
         CREATE TABLE IF NOT EXISTS sentiment_data (
-            date TEXT PRIMARY KEY,
-            title TEXT,
-            url TEXT,
-            time_published TEXT,
-            authors TEXT,
-            summary TEXT,
-            banner_image TEXT,
-            source TEXT,
-            category_within_source TEXT,
-            source_domain TEXT,
-            topics TEXT,
-            overall_sentiment_score REAL,
-            overall_sentiment_label TEXT,
-            ticker_sentiment TEXT,
-            sentiment_score REAL
-        )
+                date TEXT PRIMARY KEY,
+                sentiment_score REAL
+            )
         ''')
 
         conn.commit()
