@@ -51,7 +51,7 @@ def fetch_sentiment_data_for_last_six_months():
         start_time = (today - timedelta(days=(month + 1) * 30)).strftime('%Y%m%dT0000')
         end_time = (today - timedelta(days=month * 30)).strftime('%Y%m%dT0000')
 
-        url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&time_from={start_time}&time_to={end_time}&sort=EARLIEST&tickers=TSLA&apikey={API_KEY}"
+        url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&time_from={start_time}&time_to={end_time}&sort=RELEVANCE&tickers=TSLA&apikey={API_KEY}"
         response = requests.get(url)
 
         print(f"Fetched articles for period {start_time} to {end_time}.")
