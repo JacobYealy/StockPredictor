@@ -16,6 +16,12 @@ sentiment_scaler = MinMaxScaler(feature_range=(0, 1))
 
 
 def connect_to_db():
+    """
+        Establishes and returns a connection to the SQLite database.
+
+        Returns:
+            sqlite3.Connection: Database connection object.
+        """
     return sqlite3.connect(DB_NAME)
 
 
@@ -34,6 +40,20 @@ def fetch_sentiment_data_from_db():
 
 
 def prepare_data(stock_data, sentiment_data=None, look_back=5):
+    """
+        Prepares the data for training/testing the LSTM model.
+
+        If sentiment data is provided, it's combined with stock data.
+        The data is normalized and structured for time series forecasting.
+
+        Parameters:
+            stock_data: Stock data from the stock_data table.
+            sentiment_data: Sentiment data from the sentiment_data table.
+            look_back (int): Number of previous time steps to use as input variables to predict the next time period.
+
+        Returns:
+            tuple: Input features (X) and target variable (y) for the LSTM model.
+        """
     if sentiment_data is not None and len(sentiment_data) > 0:
         # Normalize the sentiment_data
         sentiment_data_normalized = sentiment_scaler.fit_transform(sentiment_data)
@@ -54,6 +74,19 @@ def prepare_data(stock_data, sentiment_data=None, look_back=5):
 
 
 def train_lstm_model(X_train, y_train, epochs=50, batch_size=32):
+    """
+        Builds and trains the LSTM model.
+        Uses ADAM optimizer and MSE loss function.
+
+        Parameters:
+            X_train: Training data.
+            y_train: Target variable for the training set.
+            epochs (int): Number of epochs for training.
+            batch_size (int): Batch size for training.
+
+        Returns:
+            Model: Trained LSTM model.
+        """
     model = Sequential()
     model.add(Bidirectional(LSTM(units=50, return_sequences=True), input_shape=(X_train.shape[1], X_train.shape[2])))
     model.add(Dropout(0.2))
@@ -70,6 +103,16 @@ def train_lstm_model(X_train, y_train, epochs=50, batch_size=32):
 
 
 def generate_plot_data():
+    """
+        Generates data for plotting actual and predicted stock values.
+
+        This function fetches stock and sentiment data from the database, preprocesses the data,
+        trains two LSTM models (one with sentiment and one without), makes predictions, and
+        prepares the data for plotting on the frontend.
+
+        Returns:
+            list: List of dictionaries containing actual and predicted stock values.
+        """
     # Fetch data from the database
     stock_df = fetch_stock_data_from_db()
     sentiment_df = fetch_sentiment_data_from_db()
