@@ -4,13 +4,12 @@ body, h1, h2, h3, ul, p {
     padding: 0;
 }
 
-/* Background color and font */
 body {
     background-color: #F5F5F5;
     font-family: Arial, sans-serif;
+    line-height: 1.6;
 }
 
-/* Header */
 header {
     background-color: #2C3E50;
     color: white;
@@ -29,9 +28,46 @@ nav ul li {
     float: left;
     display: inline;
     padding: 14px 16px;
+    transition: background-color 0.3s;
 }
 
-/* Main content */
+nav ul li:hover {
+    background-color: #2C3E50;
+    cursor: pointer;
+}
+
+/* Hamburger menu button */
+#nav-toggle {
+    background-color: #34495E;
+    color: white;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    display: none;
+}
+
+/* Responsive Navigation Bar */
+@media (max-width: 768px) {
+    #nav-toggle {
+        display: block;
+    }
+
+    nav ul {
+        display: none;
+        float: none;
+        text-align: center;
+    }
+
+    nav ul li {
+        display: block;
+        float: none;
+    }
+
+    main {
+        padding: 15px 5px;
+    }
+}
+
 main {
     margin: 15px;
     padding: 15px;
@@ -39,24 +75,21 @@ main {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Sections */
 section {
     margin: 20px 0;
     padding: 20px;
 }
 
-/* Footer */
 footer {
     background-color: #34495E;
     color: white;
     text-align: center;
     padding: 1em 0;
-    position: relative;
+    position: absolute;
     bottom: 0;
     width: 100%;
 }
 
-/* Plot containers */
 .plot-wrapper {
     display: flex;
     justify-content: space-around;
