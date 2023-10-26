@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
-    <head>
+
+<head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title> Contact </title>
@@ -15,36 +16,45 @@
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@900&display=swap');
     </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='contact.css') }}">
-    </head>
-    <body>
-        <header>
-            <nav>
-                <ul>
-                    <li><a href="{{ url_for('home') }}">Home</a></li>
-                    <li><a href="{{ url_for('about') }}">About</a></li>
-                    <li><a href="{{ url_for('contact') }}">Contact</a></li>
-                </ul>
-            </nav>
-        </header>
-        <section>
-            <div class="container">
-                <div class="contactInfo">
-                    <div>
-                        <h2>Contact Info</h2>
-                        <ul class="info">
-                            <li>
-                                <span><a href = "jacobyealy@gmail.com">jacobyealy@gmail.com</a></span>
-                            </li>
-                            <li>
-                                <span>717-479-0430</span>
-                            </li>
-                        </ul>
-                    </div>
-                    <ul class="sci">
+    <!-- Adding jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <!-- Hamburger Icon -->
+        <div class="hamburger-menu">
+            <div class="line line1"></div>
+            <div class="line line2"></div>
+            <div class="line line3"></div>
+        </div>
+        <nav class="mobile-nav">
+            <ul>
+                <li><a href="{{ url_for('home') }}">Home</a></li>
+                <li><a href="{{ url_for('about') }}">About</a></li>
+                <li><a href="{{ url_for('contact') }}">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section>
+        <div class="container">
+            <div class="contactInfo">
+                <div>
+                    <h2>Contact Info</h2>
+                    <ul class="info">
+                        <li>
+                            <span><a href = "jacobyealy@gmail.com">jacobyealy@gmail.com</a></span>
+                        </li>
+                        <li>
+                            <span>717-479-0430</span>
+                        </li>
+                    </ul>
                 </div>
-                    <div class="contactForm">
-                        <h2>Send a Message</h2>
-                        <div class="formBox">
+                <ul class="sci">
+                    </div>
+                <div class="contactForm">
+                    <h2>Send a Message</h2>
+                    <div class="formBox">
                         <div class="inputBox w50">
                             <input type="text" name="" required>
                             <span>First Name</span>
@@ -71,5 +81,16 @@
                     </div>
                 </div>
         </section>
-    </body>
+
+    <script>
+        // Toggle navigation
+        $('.hamburger-menu').click(function() {
+            $('.mobile-nav').toggleClass('active');
+            $('.line1').toggleClass('toggle1');
+            $('.line2').toggleClass('toggle2');
+            $('.line3').toggleClass('toggle3');
+        });
+    </script>
+</body>
+
 </html>

@@ -23,10 +23,11 @@
     <main>
         <section id="intro">
             <h2>Introduction</h2>
-            <p>This project utilizes Keras, YFinance, and AlphaVantage to generate stock prediction models using LSTM networks.</p>
+            <p>This project displays the impact of sentiment on Tesla stock.<br>
+            The last 6 months of historical stock and sentiment data is used for the analysis.</p>
         </section>
         <section id="plot-section">
-            <h2>Baseline Plot</h2>
+            <h2>Plot</h2>
             <!-- Add a canvas element where the chart will be drawn -->
             <canvas id="plotCanvas" width="400" height="200"></canvas>
         </section>
@@ -58,7 +59,7 @@
         const myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: plotDataList[0].x,  // Assuming all x-values are the same
+                labels: plotDataList[0].x,
                 datasets: datasets
             },
             options: {
