@@ -18,7 +18,7 @@ header {
 
 /* Navigation */
 nav ul {
-    background-color: #34495E;
+    background-color: #000000;
     overflow: hidden;
 }
 
@@ -36,13 +36,13 @@ nav ul li {
 }
 
 nav ul li:hover {
-    background-color: #2C3E50;
+    background-color: #000000;
     cursor: pointer;
 }
 
 /* Hamburger menu button */
 #nav-toggle {
-    background-color: #34495E;
+    background-color: #000000;
     color: white;
     border: none;
     font-size: 1.5em;

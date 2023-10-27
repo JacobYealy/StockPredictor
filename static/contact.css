@@ -219,14 +219,41 @@ section::before {
     transition: all 0.3s ease;
 }
 
-.mobile-nav {
-    display: none;
-    flex-direction: column;
+header {
+    position: relative;
+    z-index: 9999;
+    background-color: rgba(255, 255, 255, 0.9);
+    width: 100%;
 }
+
+.mobile-nav {
+    position: absolute;
+    top: 60px; /* Adjust based on the height of your header */
+    left: 0;
+    background-color: #000000;
+    width: 100%;
+    z-index: 9998;
+    display: block; /* Rounded corners at the bottom */
+}
+
+.mobile-nav ul li a {
+    color: #ffffff;
+    text-decoration: none;  /* Removes underlines from links */
+}
+
+
 
 .mobile-nav.active {
     display: flex;
 }
+
+.mobile-nav ul {
+    display: flex;
+    justify-content: space-around;  /* Distributes items evenly */
+    list-style-type: none;  /* Removes bullets from the list */
+    padding: 0;  /* Removes default padding from the list */
+}
+
 
 /* Toggle transformations */
 .line1.toggle1 {
