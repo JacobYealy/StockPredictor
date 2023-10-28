@@ -17,58 +17,59 @@ header {
 }
 
 /* Navigation */
-nav ul {
+nav {
     background-color: #000000;
-    overflow: hidden;
 }
 
-/* Making the navigation links white */
-nav ul li a {
+#nav-toggle {
+    background-color: #34495E;
+    border: none;
     color: white;
-    text-decoration: none;  /* Removes underline from links */
+    font-size: 24px;
+    cursor: pointer;
+    display: none;
+    width: 100%;
+}
+
+nav ul {
+    list-style-type: none;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 0.5em 0;
 }
 
 nav ul li {
-    float: left;
     display: inline;
-    padding: 14px 16px;
-    transition: background-color 0.3s;
 }
 
-nav ul li:hover {
-    background-color: #000000;
-    cursor: pointer;
-}
-
-/* Hamburger menu button */
-#nav-toggle {
-    background-color: #000000;
+nav ul li a {
     color: white;
-    border: none;
-    font-size: 1.5em;
-    cursor: pointer;
-    display: none;
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover {
+    background-color: #2C3E50;
 }
 
 /* Responsive Navigation Bar */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
     #nav-toggle {
         display: block;
     }
 
     nav ul {
         display: none;
-        float: none;
-        text-align: center;
+        flex-direction: column;
+        gap: 10px;
     }
 
-    nav ul li {
+    nav ul li a {
         display: block;
-        float: none;
-    }
-
-    main {
-        padding: 15px 5px;
+        text-align: center;
     }
 }
 
@@ -105,11 +106,11 @@ footer {
     padding: 15px;
     text-align: center;
 }
+
 #intro h2, #plot-section h2 {
-    border-bottom: 2px solid #2C3E50;  /* You can adjust the border color and thickness as desired */
+    border-bottom: 2px solid #2C3E50;
     padding-bottom: 10px;
 }
-
 
 h3 {
     margin-top: 15px;

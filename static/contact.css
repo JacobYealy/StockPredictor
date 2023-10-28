@@ -226,32 +226,62 @@ header {
     width: 100%;
 }
 
-.mobile-nav {
-    position: absolute;
-    top: 60px; /* Adjust based on the height of your header */
-    left: 0;
+/* Navigation */
+nav {
     background-color: #000000;
     width: 100%;
-    z-index: 9998;
-    display: block; /* Rounded corners at the bottom */
 }
 
-.mobile-nav ul li a {
-    color: #ffffff;
-    text-decoration: none;  /* Removes underlines from links */
+#nav-toggle {
+    background-color: #34495E;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    display: none;
+    width: 100%;
 }
 
-
-
-.mobile-nav.active {
+nav ul {
+    list-style-type: none;
     display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 0.5em 0;
 }
 
-.mobile-nav ul {
-    display: flex;
-    justify-content: space-around;  /* Distributes items evenly */
-    list-style-type: none;  /* Removes bullets from the list */
-    padding: 0;  /* Removes default padding from the list */
+nav ul li {
+    display: inline;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover {
+    background-color: #2C3E50;
+}
+
+/* Responsive Navigation Bar */
+@media screen and (max-width: 768px) {
+    #nav-toggle {
+        display: block;
+    }
+
+    nav ul {
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    nav ul li a {
+        display: block;
+        text-align: center;
+    }
 }
 
 
