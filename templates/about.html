@@ -68,64 +68,6 @@
     <footer>
         <p>&copy; 2023, Stock Prediction Project</p>
     </footer>
-
-    <script>
-      fetch('/get_plot_data')
-    .then(response => response.json())
-    .then(dataStr => {
-        const plotDataList = JSON.parse(dataStr); // Parsing the received JSON string
-
-        const datasets = [];
-
-        // Loop through each column data (both actual and predicted)
-        plotDataList.forEach(plotData => {
-            datasets.push({
-                label: plotData.label,
-                data: plotData.y,
-                // Add more styling options here specific to this dataset
-            });
-        });
-
-        const ctx = document.getElementById('plotCanvas').getContext('2d');
-
-        const myChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: plotDataList[0].x,  // Assuming all x-values are the same
-                datasets: datasets
-            },
-            options: {
-                // Add zoom options here
-                plugins: {
-                    zoom: {
-                        pan: {
-                            enabled: true,
-                            mode: 'x'
-                        },
-                        zoom: {
-                            enabled: true,
-                            mode: 'x'
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Time'
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Stock Value'
-                        }
-                    }
-                }
-            }
-        });
-    });
-    </script>
     <script>
         function toggleNav() {
             const navList = document.getElementById('nav-list');
