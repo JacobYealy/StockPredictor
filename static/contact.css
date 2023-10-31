@@ -1,0 +1,318 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #2C3E50;
+}
+
+section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background: #ECF0F1;
+}
+
+.container {
+    position: relative;
+    min-width: 1100px;
+    min-height: 550px;
+    display: flex;
+    z-index: 1000;
+}
+
+.container .contactInfo {
+    position: absolute;
+    top: 40px;
+    width: 350px;
+    height: calc(100% - 80px);
+    background: #2C3E50;
+    z-index: 1;
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 20px 25px rgba(0,0,0,0.15);
+    border-radius: 22px;
+}
+
+.container .contactInfo h2 {
+    color: #ECF0F1;
+    font-size:24px;
+    font-weight: 500;
+}
+
+.container .contactInfo ul.info {
+   position: relative;
+   margin: 20px 0;
+}
+
+.container .contactInfo ul.info li {
+   position: relative;
+   list-style: none;
+   display: flex;
+   margin: 20px 0;
+   cursor: pointer;
+   align-items: flex-start;
+}
+
+.container .contactInfo ul.info li span:nth-child(1) {
+    width: 30px;
+    min-width: 30px;
+}
+
+.container .contactInfo ul.info li span a {
+    color: #ECF0F1;
+    text-decoration: none;
+    width: 30px;
+    min-width: 30px;
+}
+
+.container .contactInfo ul.info li span:nth-child(1) img {
+    max-width: 100%;
+    filter: invert(1);
+}
+
+.container .contactInfo ul.info li span:nth-child(2) {
+    color: #ECF0F1;
+    margin-left: 10px;
+    font-weight: 300;
+}
+
+.container .contactInfo ul.sci {
+    position: relative;
+    display: flex;
+}
+
+.container .contactInfo ul.sci li {
+   list-style: none;
+   margin-right: 15px;
+}
+
+.container .contactInfo ul.sci li a {
+   text-decoration: none;
+}
+
+.container .contactInfo ul.sci li a img {
+   filter: invert(1);
+}
+
+.container .contactForm {
+    position: absolute;
+    padding: 70px 50px;
+    padding-left: 250px;
+    margin-left: 150px;
+    width: calc(100% - 150px);
+    height: 100%;
+    background: #ECF0F1;
+    box-shadow: 0 50px 50px rgba(0,0,0,0.25);
+    border-radius: 22px;
+}
+
+.container .contactForm h2 {
+    color: #2C3E50;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.container .contactForm .formBox {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding-top: 30px;
+}
+
+.container .contactForm .formBox .inputBox {
+    position: relative;
+    margin-bottom: 35px;
+}
+
+.container .contactForm .formBox .inputBox.w50 {
+    width: 47%;
+}
+
+.container .contactForm .formBox .inputBox.w100 {
+    width: 100%;
+}
+
+.container .contactForm .formBox .inputBox input,
+.container .contactForm .formBox .inputBox textarea {
+    width: 100%;
+    resize: none;
+    padding: 5px 0;
+    font-size: 18px;
+    font-weight: 300;
+    color: #2C3E50;
+    border: none;
+    outline: none;
+    border-bottom: 1px solid #BDC3C7;
+}
+
+.container .contactForm .formBox .inputBox textarea {
+    height: 120px;
+}
+
+.container .contactForm .formBox .inputBox span {
+    position: absolute;
+    left: 0;
+    padding: 5px 0;
+    pointer-events: none;
+    font-size: 18px;
+    font-weight: 300;
+    transition: 0.3s;
+}
+
+.container .contactForm .formBox .inputBox input:focus ~ span,
+.container .contactForm .formBox .inputBox input:valid ~ span,
+.container .contactForm .formBox .inputBox textarea:focus ~ span,
+.container .contactForm .formBox .inputBox textarea:valid ~ span {
+    transform: translateY(-20px);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    color: #2C3E50;
+    font-weight: 500;
+}
+
+.container .contactForm .formBox .inputBox input[type="submit"] {
+    position: relative;
+    cursor: pointer;
+    background: #2C3E50;
+    border-radius: 20px;
+    color: #ECF0F1;
+    border: none;
+    max-width: 150px;
+    padding: 12px;
+}
+
+.container .contactForm .formBox .inputBox input[type="submit"]:hover {
+    background: #34495E;
+}
+
+/* Hamburger Menu Styling */
+.hamburger-menu {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+    margin: 10px;
+}
+
+.line {
+    width: 30px;
+    height: 3px;
+    background-color: #2C3E50;
+    margin: 3px;
+    transition: all 0.3s ease;
+}
+
+/* Navigation */
+nav {
+    background-color: #000000;
+    width: 100vw;  /* Ensures the nav spans the entire viewport width */
+}
+
+#nav-toggle {
+    background-color: #34495E;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    display: none;
+    width: 100%;
+}
+
+nav ul {
+    list-style-type: none;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 0.5em 0;
+}
+
+nav ul li {
+    display: inline;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover {
+    background-color: #2C3E50;
+}
+
+/* Responsive Navigation Bar */
+@media screen and (max-width: 768px) {
+    #nav-toggle {
+        display: block;
+    }
+
+    nav ul {
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    nav ul li a {
+        display: block;
+        text-align: center;
+    }
+}
+
+/* Toggle transformations */
+.line1.toggle1 {
+    transform: rotate(-45deg) translate(-5px, 6px);
+}
+
+.line2.toggle2 {
+    opacity: 0;
+}
+
+.line3.toggle3 {
+    transform: rotate(45deg) translate(-5px, -6px);
+}
+
+body, h1, h2, h3, ul, p {
+    font-weight: normal;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #F5F5F5;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+}
+
+header {
+    background-color: #2C3E50;
+    color: white;
+    text-align: center;
+    padding: 1em;
+    position: relative;
+    z-index: 9999;
+    width: 100%;
+}
+
+/* Mobile view styling */
+@media screen and (max-width: 768px) {
+    .hamburger-menu {
+        display: flex;
+    }
+}

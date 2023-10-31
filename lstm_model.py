@@ -12,6 +12,7 @@ DB_NAME = 'data.sqlite'
 # Initialize MinMaxScaler (scale data between 0-1)
 stock_scaler = MinMaxScaler(feature_range=(0, 1))
 sentiment_scaler = MinMaxScaler(feature_range=(0, 1))
+look_back = 5
 
 
 
@@ -151,19 +152,23 @@ def generate_plot_data():
     predicted_stock_rescaled = stock_scaler.inverse_transform(predicted_stock)
     actual_data_rescaled = stock_scaler.inverse_transform(y_combined.reshape(-1, 1))
 
+    # Use the dates from the merged dataframe as the x-values
+    # Since we're using look_back, we need to adjust the start date
+    date_range = merged_df['date'][look_back:].values
+
     # Create data for plotting
     actual_plot_data = {
-        'x': list(range(len(actual_data_rescaled))),
+        'x': merged_df['date'][look_back:].dt.strftime('%Y-%m-%d').tolist(),
         'y': actual_data_rescaled.flatten().tolist(),
         'label': "Actual Stock Value"
     }
     predicted_combined_plot_data = {
-        'x': list(range(len(predicted_combined_rescaled))),
+        'x': date_range.tolist(),
         'y': predicted_combined_rescaled.flatten().tolist(),
         'label': "Predicted Stock Value (with Sentiment)"
     }
     predicted_stock_plot_data = {
-        'x': list(range(len(predicted_stock_rescaled))),
+        'x': date_range.tolist(),
         'y': predicted_stock_rescaled.flatten().tolist(),
         'label': "Predicted Stock Value (Stock Only)"
     }
