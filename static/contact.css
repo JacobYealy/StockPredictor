@@ -217,17 +217,10 @@ section::before {
     transition: all 0.3s ease;
 }
 
-header {
-    position: relative;
-    z-index: 9999;
-    background-color: rgba(255, 255, 255, 0.9);
-    width: 100%;
-}
-
 /* Navigation */
 nav {
     background-color: #000000;
-    width: 100%;
+    width: 100vw;  /* Ensures the nav spans the entire viewport width */
 }
 
 #nav-toggle {
@@ -282,7 +275,6 @@ nav ul li a:hover {
     }
 }
 
-
 /* Toggle transformations */
 .line1.toggle1 {
     transform: rotate(-45deg) translate(-5px, 6px);
@@ -297,6 +289,7 @@ nav ul li a:hover {
 }
 
 body, h1, h2, h3, ul, p {
+    font-weight: normal;
     margin: 0;
     padding: 0;
 }
