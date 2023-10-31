@@ -27,13 +27,6 @@
         <h2>About the Project</h2>
         <p>
             This Project is Jacob Yealy's capstone project for CSC-499 at Shippensburg University. <br>
-            In this section, you can find the experiment design information, project components, and results.
-        </p>
-    </section>
-
-    <section id="purpose-section">
-        <h3>Purpose</h3>
-        <p>
             The purpose of this project is to analyze the impact that sentiment has on the United States Stock Market. <br>
             To do so, two LSTM networks were trained. Both networks were trained on an 80/20 training and testing split. <br>
             One network only utilized stock data, while the second utilized both stock and sentiment data. <br>
@@ -41,17 +34,46 @@
         </p>
     </section>
 
+    <section id="purpose-section">
+        <h3>Data Processing</h3>
+        <p>
+            To complete the goals of this project, stock and sentiment data was needed. <br>
+            6 months of stock data was pulled from YFinance, and 6 months of sentiment data was pulled from Alpha Vantage. <br>
+            After the data was pulled, it was organized by date and stored in an SQLite database. <br>
+            Next, the data was pulled from the database tables and preprocessed using the MinMaxScaler from SciKitLearn. This ensured that
+            data was normalized to be processed easier, and ensured that the LSTM model wouldn't weigh one feature over another. <br>
+            Stock data and sentiment data are combined based on dates, ensuring that the sentiment of a particular day corresponds with the stock price of that day.
+            If sentiment data is presented to the model, it is combined with the stock data. If sentiment data is not present, only stock data is processed.
+            This allows for the two separate predictions - one based on stock only data, and one based on the combined data. <br>
+            Instead of daily data, the project uses weekly data, reducing noise and making the model less prone to over-fitting on short-term fluctuations. <br>
+        </p>
+    </section>
+
+        <section id="ml-section">
+        <h3>LSTM Networks</h3>
+        <p>
+            The Long Short Term Memory (LSTM) network is a type of Recurrent Neural Network (RNN) designed to overcome the vanishing gradient problem. <br>
+            In traditional RNNs, the vanishing gradient problem arises due to the chain rule applied during backpropagation.
+            Specifically, when we repeatedly multiply gradients less than 1, the gradients become miniscule, essentially no longer updating weights.
+            Since LSTMs have the cell state which has linear interactions (additions), this helps to avoid the vanishing gradient problem caused
+            by the tanh activations in the recurrent path of basic RNNs. <br>
+            Capturing long term as well as short term dependencies makes the LSTM ideal for time series data such as stock market data. <br>
+            The LSTM model in this project is built using the Keras Sequential API. It creates a bidirectional LSTM layer that can capture patterns in forward and backward
+            sequences of the data.
+        </p>
+    </section>
+
     <section id="dependencies-section">
         <h3>Dependencies</h3>
         <p>
-            This project utilizes the following libraries and APIs:
-            TensorFlow - Machine Learning
-            Keras - Machine Learning
-            SQLite - Database
-            YFinance - Stock data source
-            Alpha Vantage - Sentimental data source
-            Flask - Fullstack connection
-            Chart.js - The chart object
+            This project utilizes the following libraries and APIs: <br>
+            TensorFlow - Machine Learning <br>
+            Keras - Machine Learning <br>
+            SQLite - Database <br>
+            YFinance - Stock data source <br>
+            Alpha Vantage - Sentimental data source <br>
+            Flask - Fullstack connection <br>
+            Chart.js - The chart object <br>
         </p>
     </section>
 
