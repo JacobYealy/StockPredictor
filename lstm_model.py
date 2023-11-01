@@ -188,7 +188,7 @@ if __name__ == "__main__":
 
     # Resample to weekly frequency
     stock_df_weekly = stock_df.resample('W-Mon',
-                                        on='date').last()  # Gets the last value of the week (You can also use mean() for weekly average)
+                                        on='date').last()
     sentiment_df_weekly = sentiment_df.groupby('date').agg({'overall_sentiment_score': 'sum'}).resample('W-Mon').sum()
 
     # Merge dataframes
@@ -198,5 +198,5 @@ if __name__ == "__main__":
     stock_data = merged_df[['Close']].values
     sentiment_data = merged_df[['overall_sentiment_score']].values
 
-    plot_data_list = generate_plot_data()  # Consider reducing look_back to 2 or 3 as we're working with weekly data
+    plot_data_list = generate_plot_data()
     print(plot_data_list)
