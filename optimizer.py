@@ -2,6 +2,7 @@ from keras_tuner import HyperModel, RandomSearch
 from keras.layers import LSTM, Dense, Dropout, Bidirectional
 from keras.models import Sequential
 from keras.optimizers import Adam
+from lstm_model import prepare_data, fetch_stock_data_from_db, fetch_sentiment_data_from_db
 
 class LSTMHyperModel(HyperModel):
     def __init__(self, input_shape):
@@ -28,7 +29,6 @@ class LSTMHyperModel(HyperModel):
         return model
 
 def run_tuner(X_train, y_train):
-    # Instantiate the tuner
     tuner = RandomSearch(
         LSTMHyperModel(input_shape=X_train.shape[1:]),
         objective='val_loss',
@@ -38,9 +38,32 @@ def run_tuner(X_train, y_train):
         project_name='lstm_stock_prediction'
     )
 
-    # Start the search for the best hyperparameters
     tuner.search(X_train, y_train, epochs=10, validation_split=0.2)
 
     # Get the best model
     best_model = tuner.get_best_models(num_models=1)[0]
-    return best_model, tuner
+
+    # Get the best hyperparameters
+    best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
+
+    # Print the best hyperparameters
+    print("Best Hyperparameters:")
+    print(best_hyperparameters.values)
+
+    return best_model, tuner, best_hyperparameters
+
+# You can also add a main block to run the tuner directly
+if __name__ == "__main__":
+    # Fetch data
+    stock_data_df = fetch_stock_data_from_db()
+    sentiment_data_df = fetch_sentiment_data_from_db()
+
+    # Preprocess and prepare the data
+    # This assumes that 'prepare_data' function takes raw DataFrame inputs and returns X_train, y_train
+    X_train, y_train = prepare_data(stock_data_df, sentiment_data_df)
+
+    # Run the tuner
+    best_model, tuner, best_hyperparameters = run_tuner(X_train, y_train)
+
+    # Optionally, save the best model
+    best_model.save('best_lstm_model.h5')
