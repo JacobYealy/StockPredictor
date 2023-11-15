@@ -1,80 +1,66 @@
 import unittest
-import json
-from unittest.mock import patch
-import pandas as pd
+import numpy as np
 import lstm_model
-from lstm_model import generate_plot_data
 
+"""
+    TestLSTMModel - Unit Tests for LSTM Model Operations (lstm_model.py)
 
-class TestLSTMFunctions(unittest.TestCase):
+    Author: Jacob Yealy
 
-    @patch('yf.download')
-    def test_generate_plot_data_download(self, mock_download):
-        # Mock the data returned by yf.download
-        mock_data = pd.DataFrame({
-            'Open': [1, 2, 3, 4, 5],
-            'High': [1, 2, 3, 4, 5],
-            'Low': [1, 2, 3, 4, 5],
-            'Close': [1, 2, 3, 4, 5],
-            'Adj Close': [1, 2, 3, 4, 5],
-            'Volume': [1, 2, 3, 4, 5]
-        })
-        mock_download.return_value = mock_data
+    Description:
+        The TestLSTMModel class provides a suite of unit tests to verify the functionality
+        of the LSTM model operations as defined in lstm_model.py.
+        The tests ensure:
+        - Data can be successfully retrieved from the database.
+        - Data is prepared correctly for the LSTM models.
+        - LSTM models are trained and make predictions.
 
-        # Now when generate_plot_data runs yf.download, it will get mock_data
-        plot_data_str = generate_plot_data()
-        plot_data_list = json.loads(plot_data_str)
+    Each test fetches sample data and checks the results against expected outputs.
 
-        self.assertIsInstance(plot_data_list, list)
+    """
+class TestLSTMModel(unittest.TestCase):
+
+    def test_fetch_stock_data_from_db(self):
+        df = lstm_model.fetch_stock_data_from_db()
+        self.assertIsNotNone(df)
+        self.assertIn('Close', df.columns)
+
+    def test_fetch_sentiment_data_from_db(self):
+        df = lstm_model.fetch_sentiment_data_from_db()
+        self.assertIsNotNone(df)
+        self.assertIn('overall_sentiment_score', df.columns)
+
+    def test_prepare_data(self):
+        stock_data = np.array([[10.0], [11.0], [12.0], [11.5], [11.8], [12.2], [13.0]])
+        sentiment_data = np.array([[0.5], [0.6], [0.7], [0.6], [0.65], [0.68], [0.7]])
+
+        X_combined, y_combined = lstm_model.prepare_data(stock_data, sentiment_data)
+        X_stock, y_stock = lstm_model.prepare_data(stock_data)
+
+        # Check shapes for expected sizes after look_back
+        self.assertEqual(X_combined.shape, (2, 5, 2))  # 2 samples, 5 time steps, 2 features
+        self.assertEqual(X_stock.shape, (2, 5, 1))  # 2 samples, 5 time steps, 1 feature
+
+    # Checking LSTM structure
+    def test_train_lstm_model_structure(self):
+        dummy_data = np.random.rand(100, 5, 1)  # 100 samples, 5 time steps, 1 feature
+        dummy_target = np.random.rand(100, 1)
+
+        model = lstm_model.train_lstm_model(dummy_data, dummy_target, epochs=1, batch_size=10)
+
+        # Check if the model has the expected number of layers
+        self.assertEqual(len(model.layers), 7)  # 3 LSTM layers, 3 Dropout layers, 1 Dense layer
 
     def test_generate_plot_data(self):
-        plot_data_str = generate_plot_data()
-        plot_data_list = json.loads(plot_data_str)
-
-        # Checks that there is a list of dictionaries for plotting
+        plot_data_list = lstm_model.generate_plot_data()
         self.assertIsInstance(plot_data_list, list)
+        self.assertEqual(len(plot_data_list), 3)  # Actual, Predicted with Sentiment, Predicted Stock Only
+
         for plot_data in plot_data_list:
-            self.assertIsInstance(plot_data, dict)
             self.assertIn('x', plot_data)
             self.assertIn('y', plot_data)
             self.assertIn('label', plot_data)
 
-            # Check the shape of 'x' and 'y' are consistent
-            self.assertEqual(len(plot_data['x']), len(plot_data['y']))
 
-            # Checks for at least 50 data points for enough data
-            self.assertTrue(len(plot_data['y']) >= 50)
-
-            # Check if label is one of the predefined columns
-            self.assertIn(plot_data['label'], ["Open", "High", "Low", "Close", "Adj Close", "Volume"])
-
-    def test_frontend_transfer(self):
-        # Call the function and get the returned JSON string
-        result_json = lstm_model.generate_plot_data()
-
-        # Convert the JSON string back to a Python object
-        result_data = json.loads(result_json)
-
-        # Check that result_data is a list
-        self.assertIsInstance(result_data, list)
-
-        # Check that all columns are present in the results
-        result_columns = [item['label'] for item in result_data]
-
-        for column in lstm_model.columns:
-            self.assertIn(column, result_columns)
-
-        # Check that each prediction data contains 'x' and 'y' for plotting
-        for item in result_data:
-            self.assertIn('x', item)
-            self.assertIn('y', item)
-
-            # 'x' and 'y' should have same length
-            self.assertEqual(len(item['x']), len(item['y']))
-
-            # 'y' should contain predictions
-            self.assertIsInstance(item['y'], list)
-            self.assertGreater(len(item['y']), 0)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

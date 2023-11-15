@@ -5,6 +5,7 @@ from keras.optimizers import Adam
 from sklearn.preprocessing import MinMaxScaler
 import sqlite3
 import pandas as pd
+from optimizer import run_tuner
 
 # Database configuration
 DB_NAME = 'data.sqlite'
@@ -74,46 +75,18 @@ def prepare_data(stock_data, sentiment_data=None, look_back=5):
     return X, y
 
 
-def train_lstm_model(X_train, y_train, epochs=50, batch_size=32):
+def generate_plot_data(best_model_combined, best_model_stock):
     """
-        Builds and trains the LSTM model.
-        Uses ADAM optimizer and MSE loss function.
+    Generates data for plotting actual and predicted stock values.
+    Uses the best models returned by the tuner for predictions.
 
-        Parameters:
-            X_train: Training data.
-            y_train: Target variable for the training set.
-            epochs (int): Number of epochs for training.
-            batch_size (int): Batch size for training.
+    Parameters:
+        best_model_combined: The best LSTM model trained with sentiment data.
+        best_model_stock: The best LSTM model trained only with stock data.
 
-        Returns:
-            Model: Trained LSTM model.
-        """
-    model = Sequential()
-    model.add(Bidirectional(LSTM(units=50, return_sequences=True), input_shape=(X_train.shape[1], X_train.shape[2])))
-    model.add(Dropout(0.2))
-    model.add(LSTM(units=50, return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(LSTM(units=50))
-    model.add(Dropout(0.2))
-    model.add(Dense(units=1))
-
-    optimizer = Adam(learning_rate=0.001)
-    model.compile(optimizer=optimizer, loss='mean_squared_error')
-    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
-    return model
-
-
-def generate_plot_data():
+    Returns:
+        list: List of dictionaries containing actual and predicted stock values.
     """
-        Generates data for plotting actual and predicted stock values.
-
-        This function fetches stock and sentiment data from the database, preprocesses the data,
-        trains two LSTM models (one with sentiment and one without), makes predictions, and
-        prepares the data for plotting on the frontend.
-
-        Returns:
-            list: List of dictionaries containing actual and predicted stock values.
-        """
     # Fetch data from the database
     stock_df = fetch_stock_data_from_db()
     sentiment_df = fetch_sentiment_data_from_db()
@@ -139,13 +112,9 @@ def generate_plot_data():
     X_combined, y_combined = prepare_data(stock_data, sentiment_data)
     X_stock, y_stock = prepare_data(stock_data)
 
-    # Train LSTM models
-    model_combined = train_lstm_model(X_combined, y_combined)
-    model_stock = train_lstm_model(X_stock, y_stock)
-
-    # Predict using the trained models
-    predicted_combined = model_combined.predict(X_combined)
-    predicted_stock = model_stock.predict(X_stock)
+    # Predict using the trained best models
+    predicted_combined = best_model_combined.predict(X_combined)
+    predicted_stock = best_model_stock.predict(X_stock)
 
     # Rescale the predicted data to original scale
     predicted_combined_rescaled = stock_scaler.inverse_transform(predicted_combined)
@@ -163,12 +132,12 @@ def generate_plot_data():
         'label': "Actual Stock Value"
     }
     predicted_combined_plot_data = {
-        'x': date_range.tolist(),
+        'x': [date.strftime('%Y-%m-%d') for date in date_range],
         'y': predicted_combined_rescaled.flatten().tolist(),
         'label': "Predicted Stock Value (with Sentiment)"
     }
     predicted_stock_plot_data = {
-        'x': date_range.tolist(),
+        'x': [date.strftime('%Y-%m-%d') for date in date_range],
         'y': predicted_stock_rescaled.flatten().tolist(),
         'label': "Predicted Stock Value (Stock Only)"
     }
@@ -187,8 +156,7 @@ if __name__ == "__main__":
     sentiment_df['overall_sentiment_score'] = pd.to_numeric(sentiment_df['overall_sentiment_score'], errors='coerce')
 
     # Resample to weekly frequency
-    stock_df_weekly = stock_df.resample('W-Mon',
-                                        on='date').last()  # Gets the last value of the week (You can also use mean() for weekly average)
+    stock_df_weekly = stock_df.resample('W-Mon', on='date').last()
     sentiment_df_weekly = sentiment_df.groupby('date').agg({'overall_sentiment_score': 'sum'}).resample('W-Mon').sum()
 
     # Merge dataframes
@@ -198,5 +166,16 @@ if __name__ == "__main__":
     stock_data = merged_df[['Close']].values
     sentiment_data = merged_df[['overall_sentiment_score']].values
 
-    plot_data_list = generate_plot_data()  # Consider reducing look_back to 2 or 3 as we're working with weekly data
+    # Prepare the data for LSTM models
+    X_combined, y_combined = prepare_data(stock_data, sentiment_data, look_back)
+    X_stock, y_stock = prepare_data(stock_data, look_back=look_back)
+
+    # Run the tuner to find the best model with combined data
+    best_model_combined, tuner_combined = run_tuner(X_combined, y_combined)
+
+    # Run the tuner to find the best model with only stock data
+    best_model_stock, tuner_stock = run_tuner(X_stock, y_stock)
+
+    # Generate plot data using the best models
+    plot_data_list = generate_plot_data(best_model_combined, best_model_stock)
     print(plot_data_list)
