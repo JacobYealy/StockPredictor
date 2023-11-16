@@ -69,20 +69,12 @@ def fetch_latest_yfinance_data():
 def fetch_sentiment_data_for_last_six_months():
     """
         Fetches the sentiment data for Tesla (TSLA) from Alpha Vantage for the past six months.
-        Alpha Vantage limits API use to 20 calls/day, so the function sleeps to ensure we do not
-        hit the rate limit. Each API call spans a variable period to match the stock data range
-        and fetches only the top 10 most relevant articles.
-
-        Returns:
-            pd.DataFrame: Aggregated sentiment data for the specified period.
-        """
+        Alpha Vantage limits API use to 20 calls/day. Each API call fetches only the top 10 most relevant articles.
+    """
     today = datetime.now()
     fetched_data_frames = []
-
-    # Define the start date to align with stock data
     start_date = (today - timedelta(days=6 * 30))
 
-    # Calculate the number of days to span per API call
     days_per_call = (today - start_date).days // 20
 
     for day in range(0, 20):
@@ -97,16 +89,17 @@ def fetch_sentiment_data_for_last_six_months():
         data = response.json().get('feed', [])
         if data:
             df = pd.DataFrame(data)
-            df['date'] = df['time_published'].apply(lambda x: x.split("T")[0])
+            # Convert 'time_published' to datetime and extract date
+            df['date'] = pd.to_datetime(df['time_published']).dt.date
 
             # Store only the top 10 most relevant articles
             top_10_articles = df.head(10)
             fetched_data_frames.append(top_10_articles)
 
-        time.sleep(15)  # Sleep for 15 seconds to avoid rapid-fire requests
+        time.sleep(15)
 
-    # Concatenate all data frames into one
     return pd.concat(fetched_data_frames, ignore_index=True)
+
 
 
 def fetch_data():
