@@ -45,31 +45,50 @@
 
     <!-- Add a script to fetch data and update the chart -->
     <script>
-      fetch('/get_plot_data')
+  fetch('/get_plot_data')
     .then(response => response.json())
-    .then(dataStr => {
-        const plotDataList = JSON.parse(dataStr); // Parsing the received JSON string
+    .then(plotDataList => {  // Assuming plotDataList is already a JavaScript object after parsing JSON
 
-        const datasets = [];
+        // Extract labels for the chart (dates)
+        const labels = plotDataList.map(data => data.date);
 
-        // Loop through each column data (both actual and predicted)
-        plotDataList.forEach(plotData => {
-            datasets.push({
-                label: plotData.label,
-                data: plotData.y,
-            });
-        });
+        // Prepare datasets for actual, predicted with sentiment, and predicted stock only
+        const actualDataset = {
+            label: 'Actual',
+            data: plotDataList.map(data => data.actual),
+            borderColor: 'rgba(0, 0, 255, 0.5)',
+            fill: false
+        };
 
+        const predictedWithSentimentDataset = {
+            label: 'Predicted with Sentiment',
+            data: plotDataList.map(data => data.predicted_with_sentiment),
+            borderColor: 'rgba(0, 255, 0, 0.5)',
+            fill: false
+        };
+
+        const predictedStockOnlyDataset = {
+            label: 'Predicted Stock Only',
+            data: plotDataList.map(data => data.predicted_stock_only),
+            borderColor: 'rgba(255, 0, 0, 0.5)',
+            fill: false
+        };
+
+        // Create the datasets array using the datasets created above
+        const datasets = [actualDataset, predictedWithSentimentDataset, predictedStockOnlyDataset];
+
+        // Get the context of the canvas to draw the chart
         const ctx = document.getElementById('plotCanvas').getContext('2d');
 
+        // Instantiate the chart
         const myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: plotDataList[0].x,
+                labels: labels,
                 datasets: datasets
             },
             options: {
-                // Add zoom options here
+                responsive: true,
                 plugins: {
                     zoom: {
                         pan: {
@@ -84,6 +103,10 @@
                 },
                 scales: {
                     x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day'
+                        },
                         title: {
                             display: true,
                             text: 'Date'
@@ -99,7 +122,7 @@
             }
         });
     });
-    </script>
+</script>
     <script>
         function toggleNav() {
             const navList = document.getElementById('nav-list');

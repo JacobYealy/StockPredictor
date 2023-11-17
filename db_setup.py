@@ -15,7 +15,7 @@ def create_tables():
         # Create stock_data table
         cur.execute('''
         CREATE TABLE IF NOT EXISTS stock_data (
-            Date TEXT PRIMARY KEY,
+            date TEXT PRIMARY KEY,
             Open FLOAT,
             High FLOAT,
             Low FLOAT,

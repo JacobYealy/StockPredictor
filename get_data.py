@@ -53,15 +53,20 @@ def insert_sentiment_data(data_frame):
 
 def fetch_latest_yfinance_data():
     """
-        Fetches the latest stock data for Tesla (TSLA) from Yahoo Finance for the past six months.
+    Fetches the latest stock data for Tesla (TSLA) from Yahoo Finance for the past six months.
 
-        Returns:
-            pd.DataFrame: Stock data for the specified period.
-        """
+    Returns:
+        pd.DataFrame: Stock data for the specified period.
+    """
     end_date = datetime.now()
     start_date = (end_date - timedelta(days=6 * 30)).strftime('%Y-%m-%d')
     stock_data = yf.download("TSLA", start=start_date, end=end_date.strftime('%Y-%m-%d'))
     stock_data.reset_index(inplace=True)
+
+    # Truncate the time component from the 'Date' column so it matches with sentiment
+    stock_data['Date'] = pd.to_datetime(stock_data['Date']).dt.date
+
+    # Insert the modified stock data into the database
     insert_stock_data(stock_data)
     return stock_data
 
@@ -99,7 +104,6 @@ def fetch_sentiment_data_for_last_six_months():
         time.sleep(15)
 
     return pd.concat(fetched_data_frames, ignore_index=True)
-
 
 
 def fetch_data():

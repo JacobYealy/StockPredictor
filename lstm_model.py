@@ -66,68 +66,45 @@ def generate_plot_data():
     Returns:
         list: List of dictionaries containing actual and predicted stock values.
     """
-    # Fetch data from the database
+    # Fetch and prepare data
     stock_df = fetch_stock_data_from_db()
     sentiment_df = fetch_sentiment_data_from_db()
 
-    # Convert the date columns to datetime data type
-    stock_df['date'] = pd.to_datetime(stock_df['Date'])
-    sentiment_df['date'] = pd.to_datetime(sentiment_df['date'])
+    # Fit the scaler on the original stock 'Close' prices
+    stock_scaler.fit(stock_df[['Close']])
 
-    # Convert sentiment score to numeric (float); errors='coerce' will set any problematic conversion to NaN
-    sentiment_df['overall_sentiment_score'] = pd.to_numeric(sentiment_df['overall_sentiment_score'], errors='coerce')
+    # Preserve the dates for later use
+    preserved_dates = pd.to_datetime(stock_df['Date']).dt.strftime('%Y-%m-%d').tolist()
 
-    # Group by date and calculate mean sentiment score for each day
-    sentiment_df_grouped = sentiment_df.groupby('date').mean().reset_index()
-
-    # Merge dataframes on date and fill NA values with the previous non-NA value (forward fill)
-    merged_df = pd.merge(stock_df, sentiment_df_grouped, on='date', how='left').fillna(method='ffill')
-
-    # Fit the scaler on the original stock data
-    stock_scaler.fit(merged_df[['Close']])
-
-    # Extract required columns for model processing
-    stock_data = merged_df[['Close']].values
-    sentiment_data = merged_df[['overall_sentiment_score']].values
-
-    # Get the data prepared for LSTM models
-    X_combined, y_combined = prepare_data(stock_data, sentiment_data)
-    X_stock, y_stock = prepare_data(stock_data)
+    # Use the imported prepare_data function
+    X_combined, y_combined = prepare_data(stock_df, sentiment_df, look_back)
+    X_stock, y_stock = prepare_data(stock_df, None, look_back)
 
     # Train LSTM models
     model_combined = train_lstm_model(X_combined, y_combined)
     model_stock = train_lstm_model(X_stock, y_stock)
 
-    # Predict using the trained models
+    # Generate predictions
     predicted_combined = model_combined.predict(X_combined)
     predicted_stock = model_stock.predict(X_stock)
 
-    # Rescale the predicted data to original scale using the fitted scaler
+    # Rescale predictions using the fitted scaler
     predicted_combined_rescaled = stock_scaler.inverse_transform(predicted_combined.reshape(-1, 1))
     predicted_stock_rescaled = stock_scaler.inverse_transform(predicted_stock.reshape(-1, 1))
     actual_data_rescaled = stock_scaler.inverse_transform(y_combined.reshape(-1, 1))
 
-    # Use the dates from the merged dataframe as the x-values
-    date_range = merged_df['date'][look_back:].values
+    # Align predictions with dates and convert values to standard Python floats for JSON serialization
+    plot_data_list = []
+    for actual, predicted_combined, predicted_stock, date in zip(actual_data_rescaled, predicted_combined_rescaled,
+                                                                 predicted_stock_rescaled, preserved_dates):
+        plot_data_list.append({
+            'date': date,
+            'actual': float(actual[0]),  # Convert to standard Python float
+            'predicted_with_sentiment': float(predicted_combined[0]),  # Convert to standard Python float
+            'predicted_stock_only': float(predicted_stock[0])  # Convert to standard Python float
+        })
 
-    # Create data for plotting
-    actual_plot_data = {
-        'x': merged_df['date'][look_back:].dt.strftime('%Y-%m-%d').tolist(),
-        'y': actual_data_rescaled.flatten().tolist(),
-        'label': "Actual Stock Value"
-    }
-    predicted_combined_plot_data = {
-        'x': date_range.tolist(),
-        'y': predicted_combined_rescaled.flatten().tolist(),
-        'label': "Predicted Stock Value (with Sentiment)"
-    }
-    predicted_stock_plot_data = {
-        'x': date_range.tolist(),
-        'y': predicted_stock_rescaled.flatten().tolist(),
-        'label': "Predicted Stock Value (Stock Only)"
-    }
-
-    return [actual_plot_data, predicted_combined_plot_data, predicted_stock_plot_data]
+    return plot_data_list
 
 
 if __name__ == "__main__":
