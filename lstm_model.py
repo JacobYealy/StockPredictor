@@ -15,42 +15,34 @@ sentiment_scaler = MinMaxScaler(feature_range=(0, 1))
 look_back = 5
 
 
-def train_lstm_model(X_train, y_train, epochs=50, batch_size=32):
+def train_lstm_model(X_train, y_train, epochs=100, batch_size=64):
     """
-        Builds and trains the LSTM model.
-        Uses ADAM optimizer and MSE loss function.
+    Builds and trains the LSTM model.
+    Uses ADAM optimizer and MSE loss function.
 
-        Parameters:
-            X_train: Training data.
-            y_train: Target variable for the training set.
-            epochs (int): Number of epochs for training.
-            batch_size (int): Batch size for training.
+    Parameters:
+        X_train: Training data.
+        y_train: Target variable for the training set.
+        epochs (int): Number of epochs for training.
+        batch_size (int): Batch size for training.
 
-        Returns:
-            Model: Trained LSTM model.
-        """
+    Returns:
+        Model: Trained LSTM model.
+    """
 
-    # Debugging: Check for NaNs in X_train and y_train
-    print("NaNs in X_train:", np.isnan(X_train).any())
-    print("NaNs in y_train:", np.isnan(y_train).any())
-
-    # Debugging: Check the shape of X_train and y_train
-    print("Shape of X_train:", X_train.shape)
-    print("Shape of y_train:", y_train.shape)
-
+    # Increase model complexity
     model = Sequential()
-    model.add(Bidirectional(LSTM(units=50, return_sequences=True), input_shape=(X_train.shape[1], X_train.shape[2])))
-    model.add(Dropout(0.2))
-    model.add(LSTM(units=50, return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(LSTM(units=50))
-    model.add(Dropout(0.2))
+    model.add(Bidirectional(LSTM(units=100, return_sequences=True), input_shape=(X_train.shape[1], X_train.shape[2])))
+    model.add(Dropout(0.3))
+    model.add(LSTM(units=100, return_sequences=True))
+    model.add(Dropout(0.3))
+    model.add(LSTM(units=100))
+    model.add(Dropout(0.3))
     model.add(Dense(units=1))
 
-    optimizer = Adam(learning_rate=0.001)
+    optimizer = Adam(learning_rate=0.0005)  # Reduced learning rate
     model.compile(optimizer=optimizer, loss='mean_squared_error')
 
-    # Debugging: Add verbose to model.fit to see more details during training
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=1)
     return model
 
@@ -70,27 +62,30 @@ def generate_plot_data():
     stock_df = fetch_stock_data_from_db()
     sentiment_df = fetch_sentiment_data_from_db()
 
-    # Fit the scaler on the original stock 'Close' prices
+    # Fit the scalers on the respective datasets
     stock_scaler.fit(stock_df[['Close']])
+    sentiment_scaler.fit(sentiment_df[['overall_sentiment_score']])
 
     # Preserve the dates for later use
     preserved_dates = pd.to_datetime(stock_df['Date']).dt.strftime('%Y-%m-%d').tolist()
 
-    # Use the imported prepare_data function
+    # Prepare data for LSTM
     X_combined, y_combined = prepare_data(stock_df, sentiment_df, look_back)
     X_stock, y_stock = prepare_data(stock_df, None, look_back)
 
-    # Train LSTM models
-    model_combined = train_lstm_model(X_combined, y_combined)
-    model_stock = train_lstm_model(X_stock, y_stock)
+    # Train LSTM models with more epochs and larger batch size
+    model_combined = train_lstm_model(X_combined, y_combined, epochs=150, batch_size=128)
+    model_stock = train_lstm_model(X_stock, y_stock, epochs=150, batch_size=128)
 
     # Generate predictions
     predicted_combined = model_combined.predict(X_combined)
     predicted_stock = model_stock.predict(X_stock)
 
-    # Rescale predictions using the fitted scaler
-    predicted_combined_rescaled = stock_scaler.inverse_transform(predicted_combined.reshape(-1, 1))
-    predicted_stock_rescaled = stock_scaler.inverse_transform(predicted_stock.reshape(-1, 1))
+    # Rescale predictions using the fitted stock scaler
+    predicted_combined_rescaled = stock_scaler.inverse_transform(predicted_combined)
+    predicted_stock_rescaled = stock_scaler.inverse_transform(predicted_stock)
+
+    # Denormalize the actual y values using stock scaler and reshaping
     actual_data_rescaled = stock_scaler.inverse_transform(y_combined.reshape(-1, 1))
 
     # Align predictions with dates and convert values to standard Python floats for JSON serialization
