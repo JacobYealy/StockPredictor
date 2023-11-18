@@ -15,7 +15,7 @@ sentiment_scaler = MinMaxScaler(feature_range=(0, 1))
 look_back = 5
 
 
-def train_lstm_model(X_train, y_train, epochs=100, batch_size=64):
+def train_lstm_model(X_train, y_train, epochs=50, batch_size=32):
     """
     Builds and trains the LSTM model.
     Uses ADAM optimizer and MSE loss function.
@@ -29,18 +29,19 @@ def train_lstm_model(X_train, y_train, epochs=100, batch_size=64):
     Returns:
         Model: Trained LSTM model.
     """
-
-    # Increase model complexity
     model = Sequential()
-    model.add(Bidirectional(LSTM(units=100, return_sequences=True), input_shape=(X_train.shape[1], X_train.shape[2])))
-    model.add(Dropout(0.3))
-    model.add(LSTM(units=100, return_sequences=True))
-    model.add(Dropout(0.3))
-    model.add(LSTM(units=100))
-    model.add(Dropout(0.3))
+    model.add(Bidirectional(
+        LSTM(units=384, return_sequences=True),
+        input_shape=(X_train.shape[1], X_train.shape[2])
+    ))
+    model.add(Dropout(0.1))
+    model.add(LSTM(units=384, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(units=384))
+    model.add(Dropout(0.1))
     model.add(Dense(units=1))
 
-    optimizer = Adam(learning_rate=0.0005)  # Reduced learning rate
+    optimizer = Adam(learning_rate=0.0001502609784269073)
     model.compile(optimizer=optimizer, loss='mean_squared_error')
 
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=1)

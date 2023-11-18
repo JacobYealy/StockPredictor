@@ -63,7 +63,7 @@ def fetch_latest_yfinance_data():
     stock_data = yf.download("TSLA", start=start_date, end=end_date.strftime('%Y-%m-%d'))
     stock_data.reset_index(inplace=True)
 
-    # Truncate the time component from the 'Date' column so it matches with sentiment
+    # Truncate the time component from the 'Date' column, so it matches with sentiment
     stock_data['Date'] = pd.to_datetime(stock_data['Date']).dt.date
 
     # Insert the modified stock data into the database

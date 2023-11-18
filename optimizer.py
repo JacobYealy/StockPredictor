@@ -4,6 +4,7 @@ from keras.models import Sequential
 from keras.optimizers import Adam
 from lstm_model import prepare_data, fetch_stock_data_from_db, fetch_sentiment_data_from_db
 
+
 class LSTMHyperModel(HyperModel):
     def __init__(self, input_shape):
         self.input_shape = input_shape
@@ -32,7 +33,7 @@ def run_tuner(X_train, y_train):
     tuner = RandomSearch(
         LSTMHyperModel(input_shape=X_train.shape[1:]),
         objective='val_loss',
-        max_trials=10,
+        max_trials=20,
         executions_per_trial=2,
         directory='my_dir',
         project_name='lstm_stock_prediction'
@@ -52,18 +53,13 @@ def run_tuner(X_train, y_train):
 
     return best_model, tuner, best_hyperparameters
 
-# You can also add a main block to run the tuner directly
 if __name__ == "__main__":
     # Fetch data
     stock_data_df = fetch_stock_data_from_db()
     sentiment_data_df = fetch_sentiment_data_from_db()
 
     # Preprocess and prepare the data
-    # This assumes that 'prepare_data' function takes raw DataFrame inputs and returns X_train, y_train
     X_train, y_train = prepare_data(stock_data_df, sentiment_data_df)
 
     # Run the tuner
     best_model, tuner, best_hyperparameters = run_tuner(X_train, y_train)
-
-    # Optionally, save the best model
-    best_model.save('best_lstm_model.h5')
