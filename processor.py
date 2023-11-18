@@ -66,7 +66,10 @@ def prepare_data(stock_data, sentiment_data=None, look_back=5):
     stock_df = pd.DataFrame(stock_data, columns=['Date', 'Close'])
     stock_df['Date'] = pd.to_datetime(stock_df['Date'])
 
+    # Debugging: Print shapes of input data
+    print(f"Shape of stock data: {stock_data.shape}")
     if sentiment_data is not None:
+        print(f"Shape of sentiment data: {sentiment_data.shape}")
         sentiment_df = pd.DataFrame(sentiment_data, columns=['date', 'overall_sentiment_score'])
         sentiment_df['date'] = pd.to_datetime(sentiment_df['date'])
 
