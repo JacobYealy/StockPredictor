@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
 
 # Database configuration
 DB_NAME = 'data.sqlite'
@@ -61,8 +62,14 @@ def aggregate_sentiment_data(sentiment_df):
 
     return aggregated_sentiment
 
+def create_dataset(data, look_back):
+    X, y = [], []
+    for i in range(look_back, len(data)):
+        X.append(data[i - look_back:i])
+        y.append(data[i, 0])
+    return np.array(X), np.array(y)
 
-def prepare_data(stock_data, sentiment_data=None, look_back=5):
+def prepare_data(stock_data, sentiment_data=None, look_back=5, test_size=0.1):
     stock_df = pd.DataFrame(stock_data, columns=['Date', 'Close'])
     stock_df['Date'] = pd.to_datetime(stock_df['Date'])
 
@@ -99,18 +106,32 @@ def prepare_data(stock_data, sentiment_data=None, look_back=5):
     # Diagnostic: Print dataset heads after normalization
     print("Dataset head after normalization:\n", pd.DataFrame(data_normalized).tail())
 
+    # Splitting the data into training and testing sets
+    split_idx = int(len(data_normalized) * (1 - test_size))
+    train_data, test_data = data_normalized[:split_idx], data_normalized[split_idx:]
+
+    # Extract dates for the test set
+    test_dates = merged_df.index[split_idx + look_back:]
+
     # Structure data for LSTM
-    X, y = [], []
-    for i in range(look_back, len(data_normalized)):
-        X.append(data_normalized[i - look_back:i])
-        y.append(data_normalized[i, 0])
-    X, y = np.array(X), np.array(y)
+    def create_dataset(data, look_back):
+        X, y = [], []
+        for i in range(look_back, len(data)):
+            X.append(data[i - look_back:i])
+            y.append(data[i, 0])
+        return np.array(X), np.array(y)
 
-    # Diagnostic: Print the shape of X and y
-    print("Shape of X:", X.shape)
-    print("Shape of y:", y.shape)
+    X_train, y_train = create_dataset(train_data, look_back)
+    X_test, y_test = create_dataset(test_data, look_back)
 
-    return X, y
+    # Diagnostic: Print the shape of X_train, y_train, X_test, y_test
+    print("Shape of X_train:", X_train.shape)
+    print("Shape of y_train:", y_train.shape)
+    print("Shape of X_test:", X_test.shape)
+    print("Shape of y_test:", y_test.shape)
+
+    return X_train, y_train, X_test, y_test, test_dates
+
 
 
 def main():
@@ -133,11 +154,13 @@ def main():
     print("Common dates between stock and sentiment data:", common_dates.sum())
 
     # Prepare data for LSTM
-    X, y = prepare_data(stock_df, sentiment_df, look_back)
+    X_train, y_train, X_test, y_test = prepare_data(stock_df, sentiment_df, look_back)
 
     # Diagnostic: Verify the shapes of the resulting arrays
-    print("Shape of X:", X.shape)
-    print("Shape of y:", y.shape)
+    print("Shape of X_train:", X_train.shape)
+    print("Shape of y_train:", y_train.shape)
+    print("Shape of X_test:", X_test.shape)
+    print("Shape of y_test:", y_test.shape)
 
     # Additional diagnostics can be added here as needed
 

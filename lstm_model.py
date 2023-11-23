@@ -15,7 +15,7 @@ sentiment_scaler = MinMaxScaler(feature_range=(0, 1))
 look_back = 5
 
 
-def train_lstm_model(X_train, y_train, epochs=50, batch_size=32):
+def train_lstm_model(X_train, y_train, X_test, y_test, epochs=50, batch_size=32):
     """
     Builds and trains the LSTM model.
     Uses ADAM optimizer and MSE loss function.
@@ -44,7 +44,8 @@ def train_lstm_model(X_train, y_train, epochs=50, batch_size=32):
     optimizer = Adam(learning_rate=0.0001502609784269073)
     model.compile(optimizer=optimizer, loss='mean_squared_error')
 
-    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=1)
+    # Train the model with validation data
+    model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=epochs, batch_size=batch_size, verbose=1)
     return model
 
 
@@ -70,24 +71,29 @@ def generate_plot_data():
     # Preserve the dates for later use
     preserved_dates = pd.to_datetime(stock_df['Date']).dt.strftime('%Y-%m-%d').tolist()
 
-    # Prepare data for LSTM
-    X_combined, y_combined = prepare_data(stock_df, sentiment_df, look_back)
-    X_stock, y_stock = prepare_data(stock_df, None, look_back)
+    # Prepare data for LSTM with data split
+    X_combined_train, y_combined_train, X_combined_test, y_combined_test, combined_test_dates = prepare_data(stock_df, sentiment_df, look_back, test_size=0.1)
+    X_stock_train, y_stock_train, X_stock_test, y_stock_test, stock_test_dates = prepare_data(stock_df, None, look_back, test_size=0.1)
 
-    # Train LSTM models with more epochs and larger batch size
-    model_combined = train_lstm_model(X_combined, y_combined, epochs=150, batch_size=128)
-    model_stock = train_lstm_model(X_stock, y_stock, epochs=150, batch_size=128)
+    # Train LSTM models with the training set
+    model_combined = train_lstm_model(X_combined_train, y_combined_train, X_combined_test, y_combined_test, epochs=50,
+                                      batch_size=128)
+    model_stock = train_lstm_model(X_stock_train, y_stock_train, X_stock_test, y_stock_test, epochs=50, batch_size=128)
 
-    # Generate predictions
-    predicted_combined = model_combined.predict(X_combined)
-    predicted_stock = model_stock.predict(X_stock)
+    # Generate predictions on the test set
+    predicted_combined = model_combined.predict(X_combined_test)
+    predicted_stock = model_stock.predict(X_stock_test)
 
     # Rescale predictions using the fitted stock scaler
     predicted_combined_rescaled = stock_scaler.inverse_transform(predicted_combined)
     predicted_stock_rescaled = stock_scaler.inverse_transform(predicted_stock)
 
     # Denormalize the actual y values using stock scaler and reshaping
-    actual_data_rescaled = stock_scaler.inverse_transform(y_combined.reshape(-1, 1))
+    # Ensure that you're using y_combined_test here
+    actual_data_rescaled = stock_scaler.inverse_transform(y_combined_test.reshape(-1, 1))
+
+    # Use the preserved test set dates for plotting
+    preserved_dates = combined_test_dates  # or stock_test_dates, depending on which you're plotting
 
     # Align predictions with dates and convert values to standard Python floats for JSON serialization
     plot_data_list = []
