@@ -29,7 +29,7 @@ class LSTMHyperModel(HyperModel):
         )
         return model
 
-def run_tuner(X_train, y_train):
+def run_tuner(X_train, y_train, X_test, y_test):
     tuner = RandomSearch(
         LSTMHyperModel(input_shape=X_train.shape[1:]),
         objective='val_loss',
@@ -39,7 +39,7 @@ def run_tuner(X_train, y_train):
         project_name='lstm_stock_prediction'
     )
 
-    tuner.search(X_train, y_train, epochs=10, validation_split=0.2)
+    tuner.search(X_train, y_train, epochs=10, validation_data=(X_test, y_test))
 
     # Get the best model
     best_model = tuner.get_best_models(num_models=1)[0]
@@ -53,13 +53,14 @@ def run_tuner(X_train, y_train):
 
     return best_model, tuner, best_hyperparameters
 
+
 if __name__ == "__main__":
     # Fetch data
     stock_data_df = fetch_stock_data_from_db()
     sentiment_data_df = fetch_sentiment_data_from_db()
 
     # Preprocess and prepare the data
-    X_train, y_train = prepare_data(stock_data_df, sentiment_data_df)
+    X_train, y_train, X_test, y_test, test_dates = prepare_data(stock_data_df, sentiment_data_df)
 
     # Run the tuner
-    best_model, tuner, best_hyperparameters = run_tuner(X_train, y_train)
+    best_model, tuner, best_hyperparameters = run_tuner(X_train, y_train, X_test, y_test)

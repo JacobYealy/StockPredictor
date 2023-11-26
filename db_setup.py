@@ -33,6 +33,14 @@ def create_tables():
             )
         ''')
 
+        # Create another sentiment_data table
+        cur.execute('''
+        CREATE TABLE IF NOT EXISTS sentiment_data_year (
+                date TEXT PRIMARY KEY,
+                sentiment_score REAL
+            )
+        ''')
+
         conn.commit()
 
     except sqlite3.Error as e:

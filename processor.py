@@ -34,16 +34,25 @@ def fetch_stock_data_from_db():
     print("Stock Data After Fetching:\n", df.head())
     return df
 
+
 def fetch_sentiment_data_from_db():
     conn = connect_to_db()
-    df = pd.read_sql('SELECT date, overall_sentiment_score FROM sentiment_data', conn)
+
+    # Fetch data from both sentiment tables
+    recent_sentiment_df = pd.read_sql('SELECT date, overall_sentiment_score FROM sentiment_data', conn)
+    year_sentiment_df = pd.read_sql('SELECT date, overall_sentiment_score FROM sentiment_data_year', conn)
     conn.close()
 
-    # Convert 'date' column to datetime
-    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    # Convert 'date' column to datetime for both dataframes
+    recent_sentiment_df['date'] = pd.to_datetime(recent_sentiment_df['date'], errors='coerce')
+    year_sentiment_df['date'] = pd.to_datetime(year_sentiment_df['date'], errors='coerce')
 
-    # Diagnostic: Check the sentiment data after fetching
-    print("Sentiment Data After Fetching:\n", df.head())
+    # Combine the data from both tables
+    df = pd.concat([year_sentiment_df, recent_sentiment_df]).drop_duplicates().sort_values(by='date')
+
+    # Diagnostic: Check the combined sentiment data after fetching
+    print("Combined Sentiment Data After Fetching:\n", df.head())
+
     return df
 
 
@@ -104,7 +113,7 @@ def prepare_data(stock_data, sentiment_data=None, look_back=5, test_size=0.1):
         data_normalized = np.hstack((data_normalized, sentiment_normalized))
 
     # Diagnostic: Print dataset heads after normalization
-    print("Dataset head after normalization:\n", pd.DataFrame(data_normalized).tail())
+    print("Dataset tail after normalization:\n", pd.DataFrame(data_normalized).tail())
 
     # Splitting the data into training and testing sets
     split_idx = int(len(data_normalized) * (1 - test_size))
@@ -154,7 +163,7 @@ def main():
     print("Common dates between stock and sentiment data:", common_dates.sum())
 
     # Prepare data for LSTM
-    X_train, y_train, X_test, y_test = prepare_data(stock_df, sentiment_df, look_back)
+    X_train, y_train, X_test, y_test, test_dates = prepare_data(stock_df, sentiment_df, look_back)
 
     # Diagnostic: Verify the shapes of the resulting arrays
     print("Shape of X_train:", X_train.shape)
