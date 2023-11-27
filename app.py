@@ -24,8 +24,12 @@ def submit_contact():
 
 @app.route('/get_plot_data')
 def get_plot_data_endpoint():
-    plot_data_list = generate_plot_data()
-    return jsonify(plot_data_list)
+    plot_data_list, combined_stats, stock_stats = generate_plot_data()
+    return jsonify({
+        'plot_data': plot_data_list,
+        'combined_model_statistics': combined_stats,
+        'stock_only_model_statistics': stock_stats
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

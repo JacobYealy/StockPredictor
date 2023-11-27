@@ -2,6 +2,7 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout, Bidirectional
 from keras.optimizers import Adam
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 from processor import prepare_data, fetch_stock_data_from_db, fetch_sentiment_data_from_db
@@ -48,6 +49,26 @@ def train_lstm_model(X_train, y_train, X_test, y_test, epochs=50, batch_size=32)
     model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=epochs, batch_size=batch_size, verbose=1)
     return model
 
+def calculate_statistics(X_test, y_test, model):
+    """
+    Calculates and returns model statistics such as accuracy score and mean squared error.
+
+    Parameters:
+        X_test: Test data features.
+        y_test: Actual target values for the test data.
+        model: Trained LSTM model.
+
+    Returns:
+        dict: A dictionary containing model statistics like accuracy and mean squared error.
+    """
+    predicted = model.predict(X_test)
+    mse = mean_squared_error(y_test, predicted)
+    accuracy = r2_score(y_test, predicted)  # R-squared as a measure of accuracy
+
+    return {
+        'mean_squared_error': mse,
+        'accuracy': accuracy
+    }
 
 def generate_plot_data():
     """
@@ -106,7 +127,11 @@ def generate_plot_data():
             'predicted_stock_only': float(predicted_stock[0])  # Convert to standard Python float
         })
 
-    return plot_data_list
+    # Calculate statistics
+    combined_stats = calculate_statistics(X_combined_test, y_combined_test, model_combined)
+    stock_stats = calculate_statistics(X_stock_test, y_stock_test, model_stock)
+
+    return plot_data_list, combined_stats, stock_stats
 
 
 if __name__ == "__main__":
