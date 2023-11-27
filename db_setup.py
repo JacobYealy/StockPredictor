@@ -15,7 +15,7 @@ def create_tables():
         # Create stock_data table
         cur.execute('''
         CREATE TABLE IF NOT EXISTS stock_data (
-            Date TEXT PRIMARY KEY,
+            date TEXT PRIMARY KEY,
             Open FLOAT,
             High FLOAT,
             Low FLOAT,
@@ -28,6 +28,14 @@ def create_tables():
         # Create sentiment_data table
         cur.execute('''
         CREATE TABLE IF NOT EXISTS sentiment_data (
+                date TEXT PRIMARY KEY,
+                sentiment_score REAL
+            )
+        ''')
+
+        # Create another sentiment_data table
+        cur.execute('''
+        CREATE TABLE IF NOT EXISTS sentiment_data_year (
                 date TEXT PRIMARY KEY,
                 sentiment_score REAL
             )

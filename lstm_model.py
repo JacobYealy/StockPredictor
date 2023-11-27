@@ -2,10 +2,10 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout, Bidirectional
 from keras.optimizers import Adam
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import MinMaxScaler
-import sqlite3
 import pandas as pd
-from optimizer import run_tuner
+from processor import prepare_data, fetch_stock_data_from_db, fetch_sentiment_data_from_db
 
 # Database configuration
 DB_NAME = 'data.sqlite'
@@ -16,133 +16,122 @@ sentiment_scaler = MinMaxScaler(feature_range=(0, 1))
 look_back = 5
 
 
-
-def connect_to_db():
+def train_lstm_model(X_train, y_train, X_test, y_test, epochs=50, batch_size=32):
     """
-        Establishes and returns a connection to the SQLite database.
-
-        Returns:
-            sqlite3.Connection: Database connection object.
-        """
-    return sqlite3.connect(DB_NAME)
-
-
-def fetch_stock_data_from_db():
-    conn = connect_to_db()
-    df = pd.read_sql('SELECT * FROM stock_data', conn)
-    conn.close()
-    return df
-
-
-def fetch_sentiment_data_from_db():
-    conn = connect_to_db()
-    df = pd.read_sql('SELECT date, overall_sentiment_score FROM sentiment_data', conn)
-    conn.close()
-    return df
-
-
-def prepare_data(stock_data, sentiment_data=None, look_back=5):
-    """
-        Prepares the data for training/testing the LSTM model.
-
-        If sentiment data is provided, it's combined with stock data.
-        The data is normalized and structured for time series forecasting.
-
-        Parameters:
-            stock_data: Stock data from the stock_data table.
-            sentiment_data: Sentiment data from the sentiment_data table.
-            look_back (int): Number of previous time steps to use as input variables to predict the next time period.
-
-        Returns:
-            tuple: Input features (X) and target variable (y) for the LSTM model.
-        """
-    if sentiment_data is not None and len(sentiment_data) > 0:
-        # Normalize the sentiment_data
-        sentiment_data_normalized = sentiment_scaler.fit_transform(sentiment_data)
-        # Use stock_scaler to normalize stock_data
-        stock_data_normalized = stock_scaler.fit_transform(stock_data)
-        data_normalized = np.hstack((stock_data_normalized, sentiment_data_normalized))
-    else:
-        # If no sentiment data, only normalize stock data
-        stock_data_normalized = stock_scaler.fit_transform(stock_data)
-        data_normalized = stock_data_normalized
-
-    X, y = [], []
-    for i in range(look_back, len(data_normalized)):
-        X.append(data_normalized[i - look_back:i])
-        y.append(data_normalized[i, 0])  # Predicting the stock value
-    X, y = np.array(X), np.array(y)
-    return X, y
-
-
-def generate_plot_data(best_model_combined, best_model_stock):
-    """
-    Generates data for plotting actual and predicted stock values.
-    Uses the best models returned by the tuner for predictions.
+    Builds and trains the LSTM model.
+    Uses ADAM optimizer and MSE loss function.
 
     Parameters:
-        best_model_combined: The best LSTM model trained with sentiment data.
-        best_model_stock: The best LSTM model trained only with stock data.
+        X_train: Training data.
+        y_train: Target variable for the training set.
+        epochs (int): Number of epochs for training.
+        batch_size (int): Batch size for training.
+
+    Returns:
+        Model: Trained LSTM model.
+    """
+    model = Sequential()
+    model.add(Bidirectional(
+        LSTM(units=384, return_sequences=True),
+        input_shape=(X_train.shape[1], X_train.shape[2])
+    ))
+    model.add(Dropout(0.1))
+    model.add(LSTM(units=384, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(units=384))
+    model.add(Dropout(0.1))
+    model.add(Dense(units=1))
+
+    optimizer = Adam(learning_rate=0.0001502609784269073)
+    model.compile(optimizer=optimizer, loss='mean_squared_error')
+
+    # Train the model with validation data
+    model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=epochs, batch_size=batch_size, verbose=1)
+    return model
+
+def calculate_statistics(X_test, y_test, model):
+    """
+    Calculates and returns model statistics such as accuracy score and mean squared error.
+
+    Parameters:
+        X_test: Test data features.
+        y_test: Actual target values for the test data.
+        model: Trained LSTM model.
+
+    Returns:
+        dict: A dictionary containing model statistics like accuracy and mean squared error.
+    """
+    predicted = model.predict(X_test)
+    mse = mean_squared_error(y_test, predicted)
+    accuracy = r2_score(y_test, predicted)  # R-squared as a measure of accuracy
+
+    return {
+        'mean_squared_error': mse,
+        'accuracy': accuracy
+    }
+
+def generate_plot_data():
+    """
+    Generates data for plotting actual and predicted stock values.
+
+    This function fetches stock and sentiment data from the database, preprocesses the data,
+    trains two LSTM models (one with sentiment and one without), makes predictions, and
+    prepares the data for plotting on the frontend.
 
     Returns:
         list: List of dictionaries containing actual and predicted stock values.
     """
-    # Fetch data from the database
+    # Fetch and prepare data
     stock_df = fetch_stock_data_from_db()
     sentiment_df = fetch_sentiment_data_from_db()
 
-    # Convert the date columns to datetime data type
-    stock_df['date'] = pd.to_datetime(stock_df['Date'])
-    sentiment_df['date'] = pd.to_datetime(sentiment_df['date'])
+    # Fit the scalers on the respective datasets
+    stock_scaler.fit(stock_df[['Close']])
+    sentiment_scaler.fit(sentiment_df[['overall_sentiment_score']])
 
-    # Convert sentiment score to numeric (float); errors='coerce' will set any problematic conversion to NaN
-    sentiment_df['overall_sentiment_score'] = pd.to_numeric(sentiment_df['overall_sentiment_score'], errors='coerce')
+    # Preserve the dates for later use
+    preserved_dates = pd.to_datetime(stock_df['Date']).dt.strftime('%Y-%m-%d').tolist()
 
-    # Group by date and calculate mean sentiment score for each day
-    sentiment_df_grouped = sentiment_df.groupby('date').mean().reset_index()
+    # Prepare data for LSTM with data split
+    X_combined_train, y_combined_train, X_combined_test, y_combined_test, combined_test_dates = prepare_data(stock_df, sentiment_df, look_back, test_size=0.1)
+    X_stock_train, y_stock_train, X_stock_test, y_stock_test, stock_test_dates = prepare_data(stock_df, None, look_back, test_size=0.1)
 
-    # Merge dataframes on date and fill NA values with the previous non-NA value (forward fill)
-    merged_df = pd.merge(stock_df, sentiment_df_grouped, on='date', how='left').fillna(method='ffill')
+    # Train LSTM models with the training set
+    model_combined = train_lstm_model(X_combined_train, y_combined_train, X_combined_test, y_combined_test, epochs=50,
+                                      batch_size=128)
+    model_stock = train_lstm_model(X_stock_train, y_stock_train, X_stock_test, y_stock_test, epochs=50, batch_size=128)
 
-    # Extract required columns for model processing
-    stock_data = merged_df[['Close']].values
-    sentiment_data = merged_df[['overall_sentiment_score']].values
+    # Generate predictions on the test set
+    predicted_combined = model_combined.predict(X_combined_test)
+    predicted_stock = model_stock.predict(X_stock_test)
 
-    # Get the data prepared for LSTM models
-    X_combined, y_combined = prepare_data(stock_data, sentiment_data)
-    X_stock, y_stock = prepare_data(stock_data)
-
-    # Predict using the trained best models
-    predicted_combined = best_model_combined.predict(X_combined)
-    predicted_stock = best_model_stock.predict(X_stock)
-
-    # Rescale the predicted data to original scale
+    # Rescale predictions using the fitted stock scaler
     predicted_combined_rescaled = stock_scaler.inverse_transform(predicted_combined)
     predicted_stock_rescaled = stock_scaler.inverse_transform(predicted_stock)
-    actual_data_rescaled = stock_scaler.inverse_transform(y_combined.reshape(-1, 1))
 
-    # Use the dates from the merged dataframe as the x-values
-    # Since we're using look_back, we need to adjust the start date
-    date_range = merged_df['date'][look_back:].values
+    # Denormalize the actual y values using stock scaler and reshaping
+    # Ensure that you're using y_combined_test here
+    actual_data_rescaled = stock_scaler.inverse_transform(y_combined_test.reshape(-1, 1))
 
-    # Create data for plotting
-    actual_plot_data = {
-        'x': merged_df['date'][look_back:].dt.strftime('%Y-%m-%d').tolist(),
-        'y': actual_data_rescaled.flatten().tolist(),
-        'label': "Actual Stock Value"
-    }
-    predicted_combined_plot_data = {
-        'x': [date.strftime('%Y-%m-%d') for date in date_range],
-        'y': predicted_combined_rescaled.flatten().tolist(),
-        'label': "Predicted Stock Value (with Sentiment)"
-    }
-    predicted_stock_plot_data = {
-        'x': [date.strftime('%Y-%m-%d') for date in date_range],
-        'y': predicted_stock_rescaled.flatten().tolist(),
-        'label': "Predicted Stock Value (Stock Only)"
-    }
+    # Use the preserved test set dates for plotting
+    preserved_dates = combined_test_dates  # or stock_test_dates, depending on which you're plotting
 
-    return [actual_plot_data, predicted_combined_plot_data, predicted_stock_plot_data]
+    # Align predictions with dates and convert values to standard Python floats for JSON serialization
+    plot_data_list = []
+    for actual, predicted_combined, predicted_stock, date in zip(actual_data_rescaled, predicted_combined_rescaled,
+                                                                 predicted_stock_rescaled, preserved_dates):
+        plot_data_list.append({
+            'date': date,
+            'actual': float(actual[0]),  # Convert to standard Python float
+            'predicted_with_sentiment': float(predicted_combined[0]),  # Convert to standard Python float
+            'predicted_stock_only': float(predicted_stock[0])  # Convert to standard Python float
+        })
+
+    # Calculate statistics
+    combined_stats = calculate_statistics(X_combined_test, y_combined_test, model_combined)
+    stock_stats = calculate_statistics(X_stock_test, y_stock_test, model_stock)
+
+    return plot_data_list, combined_stats, stock_stats
 
 
 if __name__ == "__main__":
@@ -156,7 +145,8 @@ if __name__ == "__main__":
     sentiment_df['overall_sentiment_score'] = pd.to_numeric(sentiment_df['overall_sentiment_score'], errors='coerce')
 
     # Resample to weekly frequency
-    stock_df_weekly = stock_df.resample('W-Mon', on='date').last()
+    stock_df_weekly = stock_df.resample('W-Mon',
+                                        on='date').last()
     sentiment_df_weekly = sentiment_df.groupby('date').agg({'overall_sentiment_score': 'sum'}).resample('W-Mon').sum()
 
     # Merge dataframes
@@ -166,16 +156,5 @@ if __name__ == "__main__":
     stock_data = merged_df[['Close']].values
     sentiment_data = merged_df[['overall_sentiment_score']].values
 
-    # Prepare the data for LSTM models
-    X_combined, y_combined = prepare_data(stock_data, sentiment_data, look_back)
-    X_stock, y_stock = prepare_data(stock_data, look_back=look_back)
-
-    # Run the tuner to find the best model with combined data
-    best_model_combined, tuner_combined = run_tuner(X_combined, y_combined)
-
-    # Run the tuner to find the best model with only stock data
-    best_model_stock, tuner_stock = run_tuner(X_stock, y_stock)
-
-    # Generate plot data using the best models
-    plot_data_list = generate_plot_data(best_model_combined, best_model_stock)
+    plot_data_list = generate_plot_data()
     print(plot_data_list)
