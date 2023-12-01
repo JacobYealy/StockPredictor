@@ -1,10 +1,11 @@
 import numpy as np
+import random
+import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout, Bidirectional
 from keras.optimizers import Adam
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import MinMaxScaler
-import pandas as pd
 from processor import prepare_data, fetch_stock_data_from_db, fetch_sentiment_data_from_db
 from scipy import stats
 
@@ -17,38 +18,31 @@ sentiment_scaler = MinMaxScaler(feature_range=(0, 1))
 look_back = 5
 
 
-def train_lstm_model(X_train, y_train, X_test, y_test, epochs=50, batch_size=32):
+def train_lstm_model(X_train, y_train, X_test, y_test, hyperparameters, epochs=50, batch_size=32):
     """
-    Builds and trains the LSTM model.
-    Uses ADAM optimizer and MSE loss function.
-
-    Parameters:
-        X_train: Training data.
-        y_train: Target variable for the training set.
-        epochs (int): Number of epochs for training.
-        batch_size (int): Batch size for training.
-
-    Returns:
-        Model: Trained LSTM model.
+    Builds and trains the LSTM model using provided hyperparameters.
     """
+    # Set seeds for reproducibility
+    seed = hyperparameters.get('seed', 42)  # Default val
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
+
     model = Sequential()
-    model.add(Bidirectional(
-        LSTM(units=128, return_sequences=True),
-        input_shape=(X_train.shape[1], X_train.shape[2])
-    ))
-    model.add(Dropout(0.2))
-    model.add(LSTM(units=128, return_sequences=True))
-    model.add(Dropout(0.1))
-    model.add(LSTM(units=128))
-    model.add(Dropout(0.4))
-    model.add(Dense(units=1))
+    for i in range(hyperparameters['num_layers']):
+        model.add(Bidirectional(
+            LSTM(units=hyperparameters[f'units_{i}'], return_sequences=(i < hyperparameters['num_layers'] - 1)),
+            input_shape=(X_train.shape[1], X_train.shape[2])))
+        model.add(Dropout(hyperparameters[f'dropout_{i}']))
 
-    optimizer = Adam(learning_rate=0.0001502609784269073)
+    model.add(Dense(units=1))
+    optimizer = Adam(learning_rate=hyperparameters['learning_rate'])
     model.compile(optimizer=optimizer, loss='mean_squared_error')
 
     # Train the model with validation data
     model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=epochs, batch_size=batch_size, verbose=1)
     return model
+
 
 def calculate_statistics(X_test, y_test, model):
     """
@@ -94,13 +88,23 @@ def perform_t_test(predicted_stock_only, predicted_combined):
     }
 
 
-
 def generate_plot_data():
     # Fetch and prepare data
     stock_df = fetch_stock_data_from_db()
     sentiment_df = fetch_sentiment_data_from_db()
 
-    # Fit the scalers on the respective datasets
+    # These values are found by running the optimizer.
+    hyperparameters = {
+        'seed': 48,
+        'num_layers': 2,
+        'units_0': 384,
+        'dropout_0': 0.0,
+        'learning_rate': 0.006842507100027634,
+        'units_1': 96,
+        'dropout_1': 0.1,
+    }
+
+    # Fit each scaler on the respective datasets
     stock_scaler.fit(stock_df[['Close']])
     sentiment_scaler.fit(sentiment_df[['overall_sentiment_score']])
 
@@ -109,11 +113,12 @@ def generate_plot_data():
     X_stock_train, y_stock_train, X_stock_test, y_stock_test, stock_test_dates = prepare_data(stock_df, None, look_back, test_size=0.1)
 
     # Use the preserved test set dates for plotting
-    preserved_dates = combined_test_dates  # or stock_test_dates, depending on which you're plotting
+    preserved_dates = combined_test_dates
 
-    # Train LSTM models with the training set
-    model_combined = train_lstm_model(X_combined_train, y_combined_train, X_combined_test, y_combined_test, epochs=50, batch_size=128)
-    model_stock = train_lstm_model(X_stock_train, y_stock_train, X_stock_test, y_stock_test, epochs=50, batch_size=128)
+    model_combined = train_lstm_model(X_combined_train, y_combined_train, X_combined_test, y_combined_test,
+                                      hyperparameters, epochs=50, batch_size=128)
+    model_stock = train_lstm_model(X_stock_train, y_stock_train, X_stock_test, y_stock_test, hyperparameters, epochs=50,
+                                   batch_size=128)
 
     # Directly use flattened predictions for T-test
     predicted_combined = model_combined.predict(X_combined_test).flatten()

@@ -86,7 +86,9 @@ def fetch_latest_yfinance_data():
 def fetch_sentiment_data_for_last_six_months():
     """
         Fetches the sentiment data for Tesla (TSLA) from Alpha Vantage for the past six months.
-        Alpha Vantage limits API use to 20 calls/day. Each API call fetches only the top 10 most relevant articles.
+        Alpha Vantage limits API use to 20 calls/day. Each API call stores only the top 10 most relevant articles to
+        the db. Start and end dates are variable so that the script can fetch all necessary data at once, and sleeps
+        to avoid per minute rate limits.
     """
     today = datetime.now()
     fetched_data_frames = []

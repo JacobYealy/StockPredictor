@@ -2,7 +2,6 @@ import sqlite3
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
 
 # Database configuration
 DB_NAME = 'data.sqlite'
@@ -30,7 +29,7 @@ def fetch_stock_data_from_db():
     # Convert 'Date' column to datetime
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
-    # Diagnostic: Check the stock data after fetching
+    # Check the stock data after fetching
     print("Stock Data After Fetching:\n", df.head())
     return df
 
@@ -50,7 +49,7 @@ def fetch_sentiment_data_from_db():
     # Combine the data from both tables
     df = pd.concat([year_sentiment_df, recent_sentiment_df]).drop_duplicates().sort_values(by='date')
 
-    # Diagnostic: Check the combined sentiment data after fetching
+    # Check the combined sentiment data after fetching
     print("Combined Sentiment Data After Fetching:\n", df.head())
 
     return df
@@ -71,12 +70,6 @@ def aggregate_sentiment_data(sentiment_df):
 
     return aggregated_sentiment
 
-def create_dataset(data, look_back):
-    X, y = [], []
-    for i in range(look_back, len(data)):
-        X.append(data[i - look_back:i])
-        y.append(data[i, 0])
-    return np.array(X), np.array(y)
 
 def prepare_data(stock_data, sentiment_data=None, look_back=5, test_size=0.1):
     stock_df = pd.DataFrame(stock_data, columns=['Date', 'Close'])
@@ -142,7 +135,6 @@ def prepare_data(stock_data, sentiment_data=None, look_back=5, test_size=0.1):
     return X_train, y_train, X_test, y_test, test_dates
 
 
-
 def main():
     # Fetch data from the database
     stock_df = fetch_stock_data_from_db()
@@ -151,8 +143,6 @@ def main():
     # Convert the date columns to datetime
     stock_df['date'] = pd.to_datetime(stock_df['Date'])
     sentiment_df['date'] = pd.to_datetime(sentiment_df['date'])
-
-    #Somewhere from here.
 
     # Diagnostic: Check the date ranges of both datasets
     print("Stock Data Date Range: ", stock_df['date'].min(), "to", stock_df['date'].max())
@@ -171,7 +161,6 @@ def main():
     print("Shape of X_test:", X_test.shape)
     print("Shape of y_test:", y_test.shape)
 
-    # Additional diagnostics can be added here as needed
 
 if __name__ == "__main__":
     main()
