@@ -173,6 +173,4 @@ def fetch_data():
 
 
 if __name__ == '__main__':
-    sentiment_data_year = fetch_sentiment_data_for_last_year()
-    insert_sentiment_data_year(sentiment_data_year)
-    fetch_latest_yfinance_data()
+    fetch_data()
