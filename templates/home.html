@@ -135,13 +135,17 @@ const myChart = new Chart(ctx, {
     }
 });
             // Update the stats section
-            const statsSection = document.getElementById('stats');
-            statsSection.innerHTML = `
-                <p><strong>Combined Model Accuracy:</strong> ${combinedModelStats.accuracy}</p>
-                <p><strong>Combined Model Mean Squared Error:</strong> ${combinedModelStats.mean_squared_error}</p>
-                <p><strong>Stock Only Model Accuracy:</strong> ${stockOnlyModelStats.accuracy}</p>
-                <p><strong>Stock Only Model Mean Squared Error:</strong> ${stockOnlyModelStats.mean_squared_error}</p>
-            `;
+        const statsSection = document.getElementById('stats');
+        statsSection.innerHTML = `
+            <p><strong>Combined Model Accuracy:</strong> ${data.combined_model_statistics.accuracy}</p>
+            <p><strong>Combined Model Mean Squared Error:</strong> ${data.combined_model_statistics.mean_squared_error}</p>
+            <p><strong>Combined Model Standard Deviation:</strong> ${data.combined_model_statistics.standard_deviation}</p>
+            <p><strong>Combined Model T-Test Results:</strong> Statistic: ${data.t_test_combined_statistics.t_statistic}, P-value: ${data.t_test_combined_statistics.p_value}</p>
+            <p><strong>Stock Only Model Accuracy:</strong> ${data.stock_only_model_statistics.accuracy}</p>
+            <p><strong>Stock Only Model Mean Squared Error:</strong> ${data.stock_only_model_statistics.mean_squared_error}</p>
+            <p><strong>Stock Only Model Standard Deviation:</strong> ${data.stock_only_model_statistics.standard_deviation}</p>
+            <p><strong>Stock Only Model T-Test Results:</strong> Statistic: ${data.t_test_stock_statistics.t_statistic}, P-value: ${data.t_test_stock_statistics.p_value}</p>
+        `;
         });
 
         function toggleNav() {
